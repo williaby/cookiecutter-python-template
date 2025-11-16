@@ -1,0 +1,29 @@
+# CODEOWNERS file for PromptCraft-Hybrid
+#
+# This file defines code ownership for automated review assignment and branch protection.
+# When a pull request is opened, GitHub will automatically request reviews from code owners.
+#
+# For solo development, the repository owner reviews all changes to maintain consistency
+# and ensure compliance with development standards.
+
+# Global ownership - all files require review by repository owner
+* @williaby
+
+# Critical configuration files require extra attention
+/.github/ @williaby
+/pyproject.toml @williaby
+/poetry.lock @williaby
+/docker-compose*.yml @williaby
+/Dockerfile @williaby
+/.env* @williaby
+
+# Security-sensitive files
+/scripts/ @williaby
+/.secrets/ @williaby
+/.gcp/ @williaby
+
+# Documentation and planning require consistency
+/docs/ @williaby
+/knowledge/ @williaby
+README.md @williaby
+CLAUDE.md @williaby

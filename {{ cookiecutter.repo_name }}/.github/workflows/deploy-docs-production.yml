@@ -1,0 +1,118 @@
+name: Deploy Documentation (Production)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/deploy-docs*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-production"
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git-based features
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.1.2
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: docs-production-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            docs-production-${{ runner.os }}-
+
+      - name: Install documentation dependencies
+        run: |
+          # Install MkDocs and theme
+          pip install mkdocs-material mkdocs-include-markdown-plugin
+          echo "✅ Documentation dependencies installed"
+
+      - name: Verify or create MkDocs configuration
+        run: |
+          if [ ! -f mkdocs.yml ]; then
+            echo "⚠️  mkdocs.yml not found. Creating minimal configuration..."
+            echo "site_name: PromptCraft Documentation" > mkdocs.yml
+            echo "site_description: AI-powered workbench for intelligent prompt orchestration" >> mkdocs.yml
+            echo "theme:" >> mkdocs.yml
+            echo "  name: material" >> mkdocs.yml
+            echo "nav:" >> mkdocs.yml
+            echo "  - Home: index.md" >> mkdocs.yml
+            echo "  - Planning: planning/project_hub.md" >> mkdocs.yml
+            echo "✅ Basic mkdocs.yml created"
+          else
+            echo "✅ Using existing mkdocs.yml"
+          fi
+
+      - name: Ensure index.md exists
+        run: |
+          if [ ! -f docs/index.md ]; then
+            echo "Creating docs/index.md..."
+            mkdir -p docs
+            echo "# PromptCraft Documentation" > docs/index.md
+            echo "" >> docs/index.md
+            echo "Welcome to PromptCraft - AI-powered workbench for prompt orchestration." >> docs/index.md
+            echo "" >> docs/index.md
+            echo "## Getting Started" >> docs/index.md
+            echo "" >> docs/index.md
+            echo "- [Project Overview](planning/project_hub.md)" >> docs/index.md
+            echo "- [Architecture Decision Records](planning/ADR.md)" >> docs/index.md
+          fi
+
+      - name: Build documentation
+        run: |
+          echo "Building production documentation..."
+          # Remove any conflicting index.html files
+          find docs -name "index.html" -delete 2>/dev/null || true
+          # Build with strict mode for production
+          mkdocs build --strict --verbose
+          echo "✅ Production documentation built successfully"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  deploy:
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post deployment validation
+        run: |
+          echo "✅ Production documentation deployed to: ${{ steps.deployment.outputs.page_url }}"
+          echo "Production deployment completed successfully"

@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: promptcraft-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # Mount entire project for live reload
+      - /app/.venv  # Exclude virtual environment
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONHASHSEED=random
+      - CI_ENVIRONMENT=false
+      - PROMPTCRAFT_ENABLE_SERVICE_MOCKING=true
+      - PROMPTCRAFT_REDIS_HOST=redis
+      - PROMPTCRAFT_QDRANT_HOST=${QDRANT_HOST:-192.168.1.16}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - promptcraft-dev
+    command: ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  redis:
+    image: "redis:7-alpine"
+    container_name: promptcraft-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - promptcraft-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Test runner service that mirrors CI environment
+  test:
+    build: .
+    container_name: promptcraft-test
+    volumes:
+      - .:/app
+      - /app/.venv
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONHASHSEED=random
+      - CI_ENVIRONMENT=true
+      - PROMPTCRAFT_ENABLE_SERVICE_MOCKING=true
+      - PROMPTCRAFT_REDIS_HOST=redis
+      - PROMPTCRAFT_QDRANT_HOST=redis  # Use Redis for mocking in tests
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - promptcraft-dev
+    command: ["poetry", "run", "pytest", "-v", "--cov=src", "--cov-report=term-missing", "--cov-fail-under=80"]
+    profiles:
+      - testing
+
+networks:
+  promptcraft-dev:
+    driver: bridge
+
+volumes:
+  redis-dev-data:
+    driver: local

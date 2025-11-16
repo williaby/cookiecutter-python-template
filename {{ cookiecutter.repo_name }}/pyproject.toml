@@ -1,0 +1,433 @@
+[build-system]
+requires = ["poetry-core>=1.9.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# Project metadata (PEP 621 standard)
+[project]
+name = "{{ cookiecutter.repo_name }}"
+version = "0.1.0"
+description = "{{ cookiecutter.description }}"
+authors = [{name = "{{ cookiecutter.author_name }}", email = "{{ cookiecutter.author_email }}"}]
+license = {text = "MIT"}
+readme = "README.md"
+keywords = ["ai", "prompt-engineering", "mcp", "zen", "orchestration"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.11,<3.13"
+dynamic = ["dependencies"]
+
+[project.urls]
+homepage = "https://github.com/{{ cookiecutter.author_name }}/{{ cookiecutter.repo_name }}"
+repository = "https://github.com/{{ cookiecutter.author_name }}/{{ cookiecutter.repo_name }}"
+documentation = "https://github.com/{{ cookiecutter.author_name }}/{{ cookiecutter.repo_name }}/wiki"
+
+# Poetry-specific configuration
+[tool.poetry]
+package-mode = false
+requires-poetry = ">=1.8.0"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+# Main dependencies
+gradio = "^5.35.0"
+fastapi = "^0.116.0"
+uvicorn = {extras = ["standard"], version = "^0.35.0"}
+httpx = "^0.27.0"
+pydantic = ">=2.11.0,<3.0.0"
+pydantic-settings = "^2.2.1"
+anthropic = "^0.57.0"
+openai = "^1.12.0"
+qdrant-client = "^1.14.3"
+cryptography = "^45.0.0"
+pyjwt = {version = "^2.10.1", extras = ["crypto"]}
+python-gnupg = "^0.5.2"
+pyyaml = "^6.0.2"
+toml = "^0.10.2"
+python-multipart = "^0.0.18"
+redis = {extras = ["hiredis"], version = "^6.0.0"}
+prometheus-client = "^0.20.0"
+python-dotenv = "^1.0.1"
+python-magic = "^0.4.27"
+structlog = ">=24.0.0,<26.0.0"
+rich = "^14.0.0"
+tenacity = "^9.0.0"
+python-dateutil = "^2.9.0"
+aiofiles = ">=24.1.0,<25.0.0"
+asyncer = ">=0.0.5,<1.0.0"
+mcp = "^1.10.1"
+sentry-sdk = ">=2.0.0,<3.0.0"
+opentelemetry-api = "^1.25.0"
+typing-extensions = ">=4.10.0,<5.0.0"
+slowapi = "^0.1.9"
+cachetools = "^6.1.0"
+defusedxml = "^0.7.1"
+starlette = ">=0.47.2"
+# Database dependencies for AUTH-1 enhanced authentication and AUTH-2 service token management
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.36"}
+asyncpg = "^0.30.0"
+alembic = "^1.14.0"
+aiohttp = "^3.12.15"
+plotly = "^6.3.0"
+pandas = "^2.3.1"
+jinja2 = "^3.1.6"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0.1"
+pytest-asyncio = ">=0.26.0"
+pytest-cov = ">=6.0.0"
+pytest-env = ">=1.1.3"
+pytest-mock = ">=3.12.0"
+pytest-timeout = ">=2.2.0"
+pytest-xdist = ">=3.5.0"
+pytest-rerunfailures = ">=12.0"
+hypothesis = ">=6.98.9"
+faker = ">=37.0.0"
+black = "24.10.0"
+ruff = "0.12.3"
+mypy = "1.13.0"
+types-pyyaml = ">=6.0.12.12"
+types-python-dateutil = ">=2.8.19.20240106"
+types-aiofiles = ">=24.0.0"
+bandit = {extras = ["toml"], version = "1.7.7"}
+safety = ">=3.0.1"
+detect-secrets = ">=1.5.0"
+pre-commit = ">=4.0.0"
+nox = ">=2025.1.0"
+ipython = ">=9.0.0"
+ipdb = ">=0.13.13"
+toml = "^0.10.2"
+mutmut = "^3.3.0"
+# pact-python = "^2.3.2"  # Temporarily removed due to CI build issues with external dependency
+locust = "^2.0.0"
+pip-audit = "^2.9.0"
+types-cachetools = "^6.1.0.20250717"
+isort = "^6.0.1"
+
+[tool.poetry.group.azure.dependencies]
+azure-identity = "^1.15.0"
+azure-keyvault-secrets = "^4.8.0"
+azure-storage-blob = "^12.19.0"
+
+[tool.poetry.group.ml.dependencies]
+sentence-transformers = ">=3.0.0,<6.0.0"
+tiktoken = ">=0.8.0,<1.0.0"
+numpy = ">=2.0.0,<3.0.0"
+pandas = "^2.2.0"
+spacy = ">=3.7.0,<4.0.0"
+nltk = ">=3.8.0,<4.0.0"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.6.0"
+mkdocs-material = "^9.5.32"
+mkdocstrings = {extras = ["python"], version = "^0.24.0"}
+
+[tool.poetry.group.test.dependencies]
+pytest-benchmark = ">=4.0.0"
+pytest-memray = ">=1.5.0"
+aiosqlite = "^0.21.0"
+
+
+[[tool.poetry.source]]
+name = "safety"
+url = "https://pkgs.safetycli.com/repository/williams-consulting/project/promptcraft/pypi/simple/"
+priority = "supplemental"
+
+[tool.black]
+line-length = 120
+target-version = ['py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+(
+  /(
+      \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.nox
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+exclude = [
+    "*.yaml",
+    "*.yml",
+    "docker-compose*.yaml",
+    "docker-compose*.yml",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "YTT", # flake8-2020
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit
+    "BLE", # flake8-blind-except
+    "A",   # flake8-builtins
+    "COM", # flake8-commas
+    "C4",  # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "ISC", # flake8-implicit-str_concat
+    "ICN", # flake8-import-conventions
+    "G",   # flake8-logging-format
+    "INP", # flake8-no-pep420
+    "PIE", # flake8-pie
+    "T20", # flake8-print
+    "PT",  # flake8-pytest-style
+    "Q",   # flake8-quotes
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "ARG", # flake8-unused-arguments
+    "PTH", # flake8-use-pathlib
+    "ERA", # eradicate
+    "PGH", # pygrep-hooks
+    "PL",  # pylint
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",    # line too long (handled by black)
+    "B008",    # do not perform function calls in argument defaults
+    "C901",    # too complex
+    "ANN401",  # dynamically typed expressions (Any)
+    "S101",    # use of assert detected
+    "PLR0913", # too many arguments
+    "BLE001",  # blind exception catching (needed for generic error handlers)
+    # Industry standard additions for development workflow:
+    "UP038",   # isinstance syntax (Python compatibility)
+    "PLR2004", # magic numbers (for obvious values)
+    "ARG002",  # unused arguments (interface compatibility)
+    "SIM102",  # nested if statements (readability preference)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S110", "ANN", "ARG", "PLR2004", "PLC0415", "T201"]  # Allow test patterns and try-except-pass
+"tests/auth/*" = ["S101", "S105", "S110", "ANN", "ARG", "PLR2004", "COM812", "UP017", "PLC0415", "RET504", "SIM117", "PT012"]  # Allow test patterns
+"tests/performance/*" = ["T201", "S311", "S110", "PLC0415", "F401", "PTH123", "S101", "ANN", "ARG", "PLR2004", "PLR0915"]
+"tests/security/test_codeql_validation.py" = ["S105", "S602", "S603", "S608", "S301", "S506", "S324", "S307", "PTH123", "T201", "S101", "ANN", "ARG", "PLR2004"]
+"scripts/*" = ["T20", "INP001", "ANN", "PLR0912", "PLR2004", "PTH123", "SIM118", "RUF013", "B007", "PLC0415", "G004", "S607", "S602", "S314", "S603", "RET504", "DTZ005", "RUF100"]
+"noxfile.py" = ["ANN", "D"]
+"src/config/validation.py" = ["PLC0415"]  # Allow local imports to avoid circular dependencies
+"src/config/health.py" = ["UP036", "UP017"]  # Version compatibility for Python 3.11
+"src/utils/time_utils.py" = ["UP017"]  # Use timezone.utc for Python 3.11 compatibility
+"src/utils/observability.py" = ["UP017"]  # Use timezone.utc for Python 3.11 compatibility
+"test_consensus_model_connectivity.py" = ["PLC0415", "T201"]  # Script allows local imports and print
+"tests/conftest.py" = ["UP017"]  # Use timezone.utc for Python 3.11 compatibility
+"tests/unit/scripts/test_coverage_automation.py" = ["E402"]  # Dynamic imports after sys.path modification
+"src/mcp_integration/*" = ["G004"]  # Allow f-strings in logging for structured logging
+"src/auth/*" = ["G004", "PLR2004", "SIM110", "RET504"]  # Allow f-strings, magic numbers, and specific patterns
+"src/ui/multi_journey_interface.py" = ["PLR0915", "PLR0912"]  # Allow complex UI interface methods
+"src/core/*" = ["N805"]  # Allow cls parameter name in Pydantic validators
+"src/utils/resilience.py" = ["UP046"]  # Generic class syntax for Python 3.11 compatibility
+"src/utils/secure_random.py" = ["UP047"]  # Generic function syntax for Python 3.11 compatibility
+"*.yaml" = ["ALL"]
+"*.yml" = ["ALL"]
+
+[tool.ruff.lint.pylint]
+max-branches = 18      # Increased from default 12 for industry standards
+max-statements = 75    # Increased from default 50 for industry standards
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+# Dedicated isort configuration for import organization
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["src"]
+known_third_party = ["pytest", "httpx", "fastapi", "gradio", "pydantic", "anthropic", "openai", "qdrant_client"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+skip_glob = ["**/migrations/*", "**/venv/*", "**/.venv/*"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "scripts.*", "examples.*", "noxfile"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["src.auth.middleware", "src.ui.multi_journey_interface", "src.core.vector_store", "src.config.health"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "gradio.*",
+    "sentence_transformers.*",
+    "qdrant_client.*",
+    "redis.*",
+    "yaml.*",
+    "gnupg.*",
+    "mcp.*",
+    "spacy.*",
+    "nltk.*",
+    "sentry_sdk.*",
+    "opentelemetry.*",
+]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra --strict-markers --strict-config --asyncio-mode=auto -m 'not slow' --tb=short"
+testpaths = ["tests"]
+pythonpath = [".", "scripts"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",  # Suppress Pact Python v2->v3 migration warnings globally
+]
+markers = [
+    # Primary execution control markers
+    "slow: genuinely slow tests (excluded from CI/CD and local development)",
+    "fast: development cycle tests (for IDE integration)",
+
+    # Test pyramid layer taxonomy (for analysis and metrics)
+    "unit: unit-level tests (pure functions/classes; no I/O, no network) - DEFAULT",
+    "component: component-level tests (single bounded context incl. DB/container mocks)",
+    "contract: consumer-driven contract tests (Pact consumer/provider verifications)",
+    "integration: cross-service integration tests (multi-service / real DB / message bus)",
+    "e2e: user-facing end-to-end tests (full user journey via HTTP/UI driver)",
+
+    # Non-functional test types (for analysis and selective execution)
+    "perf: performance/load tests (benchmarks, stress, timing assertions)",
+    "chaos: fault-injection/resilience tests (chaos engineering, fault tolerance)",
+    "security: runtime security assertions (Bandit assertions, penetration tests)",
+
+    # Legacy compatibility markers
+    "performance: legacy performance marker (mapped to 'perf' in analysis)",
+    "stress: legacy stress marker (mapped to 'perf' in analysis)",
+
+    # Execution behavior markers
+    "smoke: basic functionality validation tests",
+    "no_parallel: tests that should not run in parallel",
+
+    # Component-specific markers
+    "auth: authentication and authorization tests",
+]
+
+# Note: Test execution profiles are implemented via Makefile and noxfile.py
+# See CLAUDE.md for available test commands and execution strategies
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+parallel = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__init__.py",
+    "scripts/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+# Coverage threshold: 80% for full test runs, but configurable via environment
+# Set COVERAGE_FAIL_UNDER=0 to disable threshold for focused testing
+fail_under = 80
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.bandit]
+targets = ["src"]
+exclude_dirs = ["tests", "scripts"]
+skips = ["B101", "B601"]
+
+[tool.bandit.assert_used]
+skips = ["*/test_*.py", "*_test.py"]
+
+[tool.pytest.benchmark]
+# Benchmark configuration
+min_rounds = 5
+max_time = 1.0
+min_time = 0.000005
+calibration_precision = 10
+warmup = false
+warmup_iterations = 100000
+disable_gc = false
+timer = "time.perf_counter"
+sort = "mean"
+columns = "min, max, mean, stddev, median, iqr, outliers, ops, rounds"
+histogram = true
+save_data = true
+autosave = true
+save = ".benchmarks"
+compare = "0001"
+compare_fail = ["min:5%", "max:5%", "mean:5%", "median:5%", "stddev:5%"]
+
+# Mutation Testing Configuration
+[tool.mutmut]
+paths_to_mutate = "src/"
+backup = false
+runner = "pytest -x --assert=plain"
+tests_dir = "tests/"
+dict_synonyms = "Struct, NamedStruct"

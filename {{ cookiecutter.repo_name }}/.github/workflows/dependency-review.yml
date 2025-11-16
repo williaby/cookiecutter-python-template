@@ -1,0 +1,21 @@
+# .github/workflows/dependency-review.yml
+# This workflow scans dependencies for known vulnerabilities on every pull request.
+
+name: 'Dependency Review'
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v4
+
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v4
+        # This action will automatically find and scan the package.json file.
+        # It will fail if a dependency with a critical vulnerability is found.

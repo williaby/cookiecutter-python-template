@@ -1,0 +1,256 @@
+name: Service Token Authentication Example
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'validate'
+        type: choice
+        options:
+        - validate
+        - test_api
+        - health_check
+
+jobs:
+  service-token-auth:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install requests
+
+    - name: Test Service Token Authentication
+      env:
+        # Store service token in GitHub repository secrets
+        SERVICE_TOKEN: ${{ secrets.PROMPTCRAFT_SERVICE_TOKEN }}
+        API_BASE_URL: ${{ vars.PROMPTCRAFT_API_URL || 'https://api.promptcraft.example.com' }}
+      run: |
+        python << 'EOF'
+        import os
+        import requests
+        import json
+        from datetime import datetime
+
+        def test_service_token_auth():
+            """Test service token authentication against API."""
+
+            service_token = os.getenv('SERVICE_TOKEN')
+            api_base = os.getenv('API_BASE_URL')
+
+            if not service_token:
+                print("ERROR: SERVICE_TOKEN environment variable not set")
+                exit(1)
+
+            if not service_token.startswith('sk_'):
+                print("ERROR: SERVICE_TOKEN does not appear to be a valid service token")
+                exit(1)
+
+            headers = {
+                'Authorization': f'Bearer {service_token}',
+                'Content-Type': 'application/json',
+                'User-Agent': 'GitHub-Actions/PromptCraft-CI'
+            }
+
+            print(f"Testing service token authentication against {api_base}")
+            print(f"Token prefix: {service_token[:8]}...")
+            print(f"Timestamp: {datetime.utcnow().isoformat()}Z")
+
+            # Test 1: Health check endpoint (should work without auth)
+            try:
+                response = requests.get(f"{api_base}/health", timeout=10)
+                print(f"✅ Health check: {response.status_code} - {response.text[:100]}")
+            except Exception as e:
+                print(f"❌ Health check failed: {e}")
+
+            # Test 2: Protected endpoint with service token
+            try:
+                response = requests.get(
+                    f"{api_base}/api/v1/auth/me",
+                    headers=headers,
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    print(f"✅ Service token auth successful: {response.status_code}")
+                    data = response.json()
+                    print(f"   Token name: {data.get('token_name', 'N/A')}")
+                    print(f"   User type: {data.get('user_type', 'N/A')}")
+                    print(f"   Permissions: {data.get('metadata', {}).get('permissions', [])}")
+                elif response.status_code == 401:
+                    print(f"❌ Service token authentication failed: {response.status_code}")
+                    print(f"   Response: {response.text}")
+                    exit(1)
+                else:
+                    print(f"⚠️  Unexpected response: {response.status_code} - {response.text}")
+
+            except Exception as e:
+                print(f"❌ Service token test failed: {e}")
+                exit(1)
+
+            # Test 3: API endpoint that requires permissions
+            try:
+                response = requests.get(
+                    f"{api_base}/api/v1/system/status",
+                    headers=headers,
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    print(f"✅ Protected API access successful: {response.status_code}")
+                elif response.status_code == 403:
+                    print(f"⚠️  Service token lacks required permissions: {response.status_code}")
+                else:
+                    print(f"⚠️  API access response: {response.status_code} - {response.text[:100]}")
+
+            except Exception as e:
+                print(f"❌ Protected API test failed: {e}")
+
+            print("✅ Service token authentication test completed successfully")
+
+        if __name__ == "__main__":
+            test_service_token_auth()
+        EOF
+
+    - name: Validate Token Format
+      env:
+        SERVICE_TOKEN: ${{ secrets.PROMPTCRAFT_SERVICE_TOKEN }}
+      run: |
+        python << 'EOF'
+        import os
+        import hashlib
+        import re
+
+        def validate_token_format():
+            """Validate service token format and security."""
+
+            token = os.getenv('SERVICE_TOKEN')
+            if not token:
+                print("ERROR: No service token provided")
+                exit(1)
+
+            # Validate token format
+            if not token.startswith('sk_'):
+                print("ERROR: Service token must start with 'sk_'")
+                exit(1)
+
+            # Validate token length (should be sk_ + 64 hex chars)
+            if len(token) != 67:  # 3 + 64
+                print(f"WARNING: Unexpected token length: {len(token)} (expected 67)")
+
+            # Validate hex format after prefix
+            token_hex = token[3:]  # Remove 'sk_' prefix
+            if not re.match(r'^[a-f0-9]{64}$', token_hex):
+                print("ERROR: Token contains invalid characters (should be hex)")
+                exit(1)
+
+            # Calculate token hash for reference
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+            print("✅ Service token format validation passed")
+            print(f"   Token prefix: {token[:8]}...")
+            print(f"   Token length: {len(token)} characters")
+            print(f"   Token hash: {token_hash[:16]}...")
+
+        if __name__ == "__main__":
+            validate_token_format()
+        EOF
+
+    - name: Action-specific tasks
+      env:
+        ACTION: ${{ github.event.inputs.action }}
+        SERVICE_TOKEN: ${{ secrets.PROMPTCRAFT_SERVICE_TOKEN }}
+        API_BASE_URL: ${{ vars.PROMPTCRAFT_API_URL || 'https://api.promptcraft.example.com' }}
+      run: |
+        case "$ACTION" in
+          "validate")
+            echo "✅ Service token validation completed"
+            ;;
+          "test_api")
+            echo "Running extended API tests..."
+            # Add more comprehensive API testing here
+            curl -H "Authorization: Bearer $SERVICE_TOKEN" \
+                 -H "Content-Type: application/json" \
+                 "$API_BASE_URL/api/v1/health" || echo "API test failed"
+            ;;
+          "health_check")
+            echo "Running health check..."
+            curl -f "$API_BASE_URL/health" || echo "Health check failed"
+            ;;
+          *)
+            echo "Unknown action: $ACTION"
+            exit 1
+            ;;
+        esac
+
+    - name: Log CI/CD Event
+      if: always()
+      env:
+        SERVICE_TOKEN: ${{ secrets.PROMPTCRAFT_SERVICE_TOKEN }}
+        API_BASE_URL: ${{ vars.PROMPTCRAFT_API_URL || 'https://api.promptcraft.example.com' }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+      run: |
+        python << 'EOF'
+        import os
+        import requests
+        import json
+        from datetime import datetime
+
+        def log_cicd_event():
+            """Log CI/CD event for audit trail."""
+
+            service_token = os.getenv('SERVICE_TOKEN')
+            api_base = os.getenv('API_BASE_URL')
+
+            if not service_token or not api_base:
+                print("Skipping CI/CD event logging - missing credentials")
+                return
+
+            headers = {
+                'Authorization': f'Bearer {service_token}',
+                'Content-Type': 'application/json',
+                'User-Agent': 'GitHub-Actions/PromptCraft-CI'
+            }
+
+            event_data = {
+                'event_type': 'cicd_workflow',
+                'workflow_name': os.getenv('GITHUB_WORKFLOW'),
+                'run_id': os.getenv('GITHUB_RUN_ID'),
+                'commit_sha': os.getenv('GITHUB_SHA'),
+                'ref': os.getenv('GITHUB_REF'),
+                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'action': os.getenv('ACTION', 'unknown')
+            }
+
+            try:
+                response = requests.post(
+                    f"{api_base}/api/v1/audit/cicd-event",
+                    json=event_data,
+                    headers=headers,
+                    timeout=10
+                )
+
+                if response.status_code in [200, 201]:
+                    print(f"✅ CI/CD event logged successfully: {response.status_code}")
+                else:
+                    print(f"⚠️  CI/CD event logging failed: {response.status_code}")
+
+            except Exception as e:
+                print(f"⚠️  CI/CD event logging error: {e}")
+
+        if __name__ == "__main__":
+            log_cicd_event()
+        EOF

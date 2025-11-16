@@ -1,0 +1,53 @@
+# .github/workflows/codeql.yml
+# This workflow uses GitHub's CodeQL to find security vulnerabilities in the codebase.
+
+name: "CodeQL Analysis"
+
+on:
+  pull_request:
+    branches:
+      - "main"
+      - "feature/phase-1-development"
+      - "feature/**"  # Include PRs to any feature branch
+    paths:
+      - '**/*.py'
+      - '.github/workflows/codeql.yml'
+  schedule:
+    - cron: '39 16 * * 1' # Runs every Monday at 16:39 UTC
+
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    # No matrix needed for single language analysis
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install --only main
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"
+          # Force fresh analysis to resolve stalled required check

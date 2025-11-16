@@ -1,0 +1,60 @@
+# Security Exceptions Registry
+# This file tracks approved exceptions for security scan findings
+# All exceptions must be reviewed and approved by the security team
+
+version: "1.0"
+metadata:
+  description: "Registry of approved security exceptions for PromptCraft"
+  last_reviewed: "2024-01-10"
+  next_review: "2024-04-10"
+
+# Exception categories:
+# - false-positive: Tool incorrectly identified a security issue
+# - accepted-risk: Real issue but risk is accepted with mitigation
+# - pending-fix: Real issue with planned remediation
+
+exceptions:
+  # Example exception entry (remove this in production)
+  - id: "EX-EXAMPLE"
+    type: "false-positive"
+    tool: "codeql"
+    rule: "py/example-rule"
+    file: "src/example.py"
+    line: 42
+    justification: "This is an example entry - remove before production use"
+    risk_accepted: false
+    expires: "2024-02-01"
+    approved_by: "@security-team"
+    approved_date: "2024-01-10"
+    pr_reference: "#000"
+
+    # Real exceptions should be added below this line
+    # Format:
+    # - id: "EX-XXX" (increment XXX for each new exception)
+    # - type: "false-positive" | "accepted-risk" | "pending-fix"
+    # - tool: Name of the security scanning tool
+    # - rule: Specific rule or CVE that triggered
+    # - file: Path to the affected file
+    # - line: Line number (if applicable)
+    # - justification: Detailed explanation of why this is an exception
+    # - risk_accepted: true/false
+    # - expires: YYYY-MM-DD (exceptions should be time-limited)
+    # - approved_by: GitHub username of approver
+    # - approved_date: YYYY-MM-DD
+    # - pr_reference: Link to the PR where this was discussed
+    # - mitigation: (optional) For accepted-risk type, describe mitigation
+
+# Process for adding new exceptions:
+# 1. Create a PR that adds the exception to this file
+# 2. Include detailed justification in the PR description
+# 3. Get approval from security team member
+# 4. Reference the exception ID in your code comments if needed
+# 5. Exceptions are automatically reviewed quarterly
+
+# Expired exceptions:
+# Exceptions past their expiry date will trigger warnings
+# Either extend the expiry with justification or fix the underlying issue
+
+# Move expired or resolved exceptions here for historical record
+# This helps track patterns and prevent regression
+archived_exceptions: []

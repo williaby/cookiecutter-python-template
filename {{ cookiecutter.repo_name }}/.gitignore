@@ -1,0 +1,246 @@
+# Node.js
+# =================================
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Transpiled/built files
+dist/
+build/
+.next/
+out/
+
+# Typescript
+*.tsbuildinfo
+
+# Misc
+.npm
+.eslintcache
+package-lock.json
+
+# Environment
+# =================================
+# Local environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Google Cloud credentials (never commit)
+# =================================
+.gcp/
+secrets/
+**/service-account*.json
+**/gcp-*.json
+.config/gcloud/
+application_default_credentials.json
+
+
+# Python
+# =================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+junit.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ruff
+.ruff_cache/
+
+# pytest
+.pytest_cache/
+
+# Pyre type checker
+.pyre/
+
+
+# Backups
+# =================================
+# Repository backup directories
+backup/
+backup_*/
+
+
+# Azure
+# =================================
+# Azure CLI and Bicep
+.azure/
+*.bicepparam
+
+# Temporary/Development Files
+# =================================
+*.tmp
+*.temp
+*~
+.#*
+*.orig
+*.rej
+*_old
+*_OLD
+*conflicted*
+
+# Local Development
+*.env.zen-vm.template
+.secrets.baseline
+
+# Services
+*.service
+zen-mcp.service
+
+# Monitoring (local only)
+monitoring/
+
+# Claude Code (only user-specific data)
+.claude/settings.local.json
+.claude/.DS_Store
+
+# Serena MCP Server (local development data)
+.serena/
+
+# OS-specific / Editor
+# =================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+local.settings.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+.idea
+*.project
+*.classpath
+*.cproject
+/deployment/exported-template.json
+
+# Temporary Analysis Files
+# =================================
+# Remove these entries if the files should be tracked permanently
+*_ANALYSIS.md
+*_REVIEW.md
+*_PROGRESS.md
+
+# Documentation Build
+# =================================
+# MkDocs build output (deployed to GitHub Pages)
+site/
+
+# Planning Documents
+# =================================
+# Planning docs removed from repo but kept locally
+docs/planning/
+docs/zen/
+/site
+.serena/
+
+# Generated reports (organized)
+reports/
+zen-mcp-server/
+
+# Fuzzing & Security Testing
+# =================================
+# ClusterFuzzLite fuzzing artifacts
+/fuzz/.clusterfuzzlite/
+/out/
+fuzzing-crashes/
+
+# Mutation Testing
+# =================================
+# Mutation testing cache and reports
+.mutmut-cache
+html/
+mutation-results.txt
+
+# SBOM & Compliance
+# =================================
+# Software Bill of Materials artifacts
+sbom-*.json
+trivy-*.json
+trivy-*.sarif
+reuse-spdx.json

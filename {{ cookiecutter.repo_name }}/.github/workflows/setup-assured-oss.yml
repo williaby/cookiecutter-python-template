@@ -1,0 +1,180 @@
+name: Setup Assured-OSS Authentication
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.11'
+        type: string
+    secrets:
+      ASSURED_OSS_SERVICE_ACCOUNT:
+        description: 'Google Cloud service account JSON'
+        required: true
+      ASSURED_OSS_PROJECT_ID:
+        description: 'Google Cloud project ID'
+        required: true
+
+jobs:
+  setup-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+          disable-sudo: true
+          allowed-endpoints: >
+            accounts.google.com:443
+            auth.docker.io:443
+            production.cloudflare.docker.com:443
+            registry-1.docker.io:443
+            us-python.pkg.dev:443
+            oauth2.googleapis.com:443
+            pypi.org:443
+            files.pythonhosted.org:443
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@62cf5bd3a4a3282316048584a6d2b150b918e83a # v2.1.7
+        with:
+          credentials_json: ${{ secrets.ASSURED_OSS_SERVICE_ACCOUNT }}
+          project_id: ${{ secrets.ASSURED_OSS_PROJECT_ID }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@f0990588f1e5b5af6827153b93673613abdc6ec7 # v2.1.1
+        with:
+          project_id: ${{ secrets.ASSURED_OSS_PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker us-python.pkg.dev --quiet
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.1.2
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install Poetry Export Plugin with retry logic
+        run: |
+          # Robust Poetry plugin installation with comprehensive error handling
+          install_poetry_plugin() {
+            local attempt=1
+            local max_attempts=3
+            local delay=5
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "🔧 Attempt $attempt/$max_attempts: Installing poetry-plugin-export..."
+
+              # Check if plugin is already installed
+              if poetry self show plugins | grep -q "poetry-plugin-export"; then
+                echo "✅ poetry-plugin-export is already installed"
+                poetry self show plugins | grep poetry-plugin-export
+                return 0
+              fi
+
+              # Attempt installation with verbose output
+              if poetry self add poetry-plugin-export --verbose; then
+                echo "✅ Successfully installed poetry-plugin-export on attempt $attempt"
+                # Verify installation
+                if poetry self show plugins | grep -q "poetry-plugin-export"; then
+                  echo "✅ Plugin installation verified"
+                  return 0
+                else
+                  echo "⚠️  Plugin installation succeeded but verification failed"
+                fi
+              else
+                echo "❌ Failed to install poetry-plugin-export on attempt $attempt"
+              fi
+
+              if [ $attempt -lt $max_attempts ]; then
+                echo "⏳ Waiting ${delay}s before retry..."
+                sleep $delay
+                delay=$((delay * 2))  # Exponential backoff
+              fi
+
+              attempt=$((attempt + 1))
+            done
+
+            # Final failure with comprehensive debugging
+            echo "::error::Failed to install poetry-plugin-export after $max_attempts attempts"
+            echo "::group::Debug Information"
+            echo "Poetry version: $(poetry --version)"
+            echo "Python version: $(python --version)"
+            echo "Poetry configuration:"
+            poetry config --list | head -10
+            echo "Poetry environment info:"
+            poetry env info 2>/dev/null || echo "No poetry environment found"
+            echo "Available Poetry plugins:"
+            poetry self show plugins 2>/dev/null || echo "Failed to list plugins"
+            echo "Network connectivity test:"
+            curl -I https://pypi.org/simple/poetry-plugin-export/ --max-time 10 || \
+              echo "Network connectivity issues detected"
+            echo "Disk space:"
+            df -h . | tail -1
+            echo "Memory usage:"
+            free -h | head -2
+            echo "::endgroup::"
+            return 1
+          }
+
+          # Execute the installation function
+          install_poetry_plugin
+
+      - name: Configure Poetry for Assured-OSS
+        run: |
+
+          # Configure Poetry sources (skip if already exists)
+          poetry source add --priority=default pypi || echo "PyPI source already configured"
+          poetry source add --priority=supplemental assured-oss \
+            https://us-python.pkg.dev/assured-oss/python-packages/simple/ || \
+            echo "AssuredOSS source already configured"
+
+          # Secure authentication token handling - avoid shell variable exposure
+          echo "🔐 Configuring secure Assured-OSS authentication..."
+          gcloud auth print-access-token | poetry config http-basic.assured-oss oauth2accesstoken --stdin || {
+            echo "::error::Failed to configure Assured-OSS authentication"
+            echo "Attempting alternative secure token configuration..."
+            # Alternative approach using temporary environment variable
+            GOOGLE_ACCESS_TOKEN=$(gcloud auth print-access-token) \
+              poetry config http-basic.assured-oss oauth2accesstoken "$GOOGLE_ACCESS_TOKEN"
+            unset GOOGLE_ACCESS_TOKEN
+          }
+
+          echo "✅ Poetry configured for Assured-OSS authentication"
+
+      - name: Diagnostic Poetry Information
+        run: |
+          echo "::group::Poetry Configuration"
+          poetry config --list
+          echo "::endgroup::"
+
+          echo "::group::Poetry Environment Info"
+          poetry env info
+          echo "::endgroup::"
+
+          echo "::group::Poetry Sources"
+          poetry source show
+          echo "::endgroup::"
+
+      - name: Verify Assured-OSS Access
+        run: |
+          # Test authentication by attempting to fetch package index - secure token handling
+          echo "🔍 Verifying Assured-OSS access with secure authentication..."
+          {
+            echo -n "Authorization: Bearer "
+            gcloud auth print-access-token
+          } | curl -H @- \
+               "https://us-python.pkg.dev/assured-oss/python-packages/simple/" \
+               --fail --silent --show-error || {
+            echo "::warning::Direct header method failed, attempting alternative verification..."
+            # Fallback: use temporary variable with immediate cleanup
+            VERIFY_TOKEN=$(gcloud auth print-access-token)
+            curl -H "Authorization: Bearer $VERIFY_TOKEN" \
+                 "https://us-python.pkg.dev/assured-oss/python-packages/simple/" \
+                 --fail --silent --show-error
+            unset VERIFY_TOKEN
+          }
+          echo "✅ Assured-OSS access verified"

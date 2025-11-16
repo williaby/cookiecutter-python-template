@@ -1,0 +1,38 @@
+---
+extends: default
+
+rules:
+  document-start: disable
+  line-length:
+    max: 120
+    level: warning
+  indentation:
+    spaces: 2
+  comments:
+    min-spaces-from-content: 1
+  truthy:
+    allowed-values: ['true', 'false']
+    check-keys: false
+  brackets:
+    max-spaces-inside: 1
+  braces:
+    max-spaces-inside: 1
+
+ignore: |
+  .eggs/
+  .git/
+  .hg/
+  .mypy_cache/
+  .nox/
+  .tox/
+  .venv/
+  _build/
+  buck-out/
+  build/
+  dist/
+  htmlcov/
+  .pytest_cache/
+  deployment/
+  backup/
+  node_modules/
+  docs/planning/*.md

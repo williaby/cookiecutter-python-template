@@ -1,0 +1,73 @@
+name: Codecov Coverage Upload
+
+# Dedicated workflow for uploading test coverage reports to Codecov
+# Uses workflow_run to securely handle coverage from forked PRs
+# See: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+permissions: read-all
+
+jobs:
+  upload-coverage:
+    name: Upload Coverage to Codecov
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      pull-requests: write  # Required for PR comments
+      statuses: write       # Required for commit status updates
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      # NOTE: No checkout needed - workflow only downloads artifacts and uploads to Codecov
+      # Checking out PR code with workflow_run would create a security vulnerability
+      # See: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: test-results-3.12
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@f1b7348826d750ac29741abc9d1623d8da5dcd4f # v4.3.1
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: python-3.12
+          name: {{ cookiecutter.repo_name }} Coverage (Python 3.12)
+          verbose: true
+          commit_parent: ${{ github.event.workflow_run.head_sha }}
+        continue-on-error: true
+
+      - name: Coverage upload status
+        if: always()
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -f coverage.xml ]; then
+            echo "✅ Coverage report uploaded successfully"
+            echo "📊 View coverage at: https://app.codecov.io/gh/${GH_REPOSITORY}"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 📊 Coverage Report Uploaded" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "View detailed coverage at: https://app.codecov.io/gh/${GH_REPOSITORY}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Coverage report not found"
+            echo "This may indicate the test suite did not run or failed"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## ⚠️ Coverage Report Not Found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The test suite may not have run or coverage.xml was not generated." >> $GITHUB_STEP_SUMMARY
+          fi
