@@ -16,6 +16,8 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=500']
       - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
       - id: check-toml
         exclude: '{{cookiecutter.project_slug}}'  # Exclude template files with jinja2
       - id: mixed-line-ending
@@ -50,7 +52,14 @@ repos:
     hooks:
       - id: mypy
         files: ^hooks/.*\.py$
-        additional_dependencies: [types-all]
+        additional_dependencies: []
+
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        args: ['-v', '--fail-under=80', 'hooks/']
+        pass_filenames: false
 
   - repo: local
     hooks:
@@ -63,20 +72,33 @@ repos:
 
       - id: test-template-generation
         name: Test cookiecutter template generation
-        entry: bash -c 'if command -v cookiecutter &> /dev/null; then cookiecutter . --no-input --output-dir /tmp/test-template && rm -rf /tmp/test-template; else echo "Skipping: cookiecutter not installed"; fi'
+        entry: >
+          bash -c 'if command -v cookiecutter &> /dev/null; then
+          cookiecutter . --no-input --output-dir /tmp/test-template &&
+          rm -rf /tmp/test-template; else
+          echo "Skipping: cookiecutter not installed"; fi'
         language: system
         pass_filenames: false
         stages: [manual]  # Run manually with: pre-commit run test-template-generation --hook-stage manual
 
       - id: check-hardcoded-values
         name: Check for hardcoded usernames/repos
-        entry: bash -c 'if grep -r "williaby\|cookiecutter-python-template-2\|PromptCraft" --include="*.md" --include="*.py" --include="*.sh" --exclude-dir="{{cookiecutter.project_slug}}" --exclude-dir=".git" --exclude-dir="docs-reference" .; then echo "ERROR: Found hardcoded values that should be templated"; exit 1; fi'
+        entry: >
+          bash -c 'if grep -r "williaby\|cookiecutter-python-template-2\|PromptCraft"
+          --include="*.md" --include="*.py" --include="*.sh"
+          --exclude="README.md" --exclude="OPENSSF_COMPLIANCE_ANALYSIS.md"
+          --exclude-dir="{{cookiecutter.project_slug}}"
+          --exclude-dir=".git" --exclude-dir="docs-reference" --exclude-dir="hooks" .; then
+          echo "ERROR: Found hardcoded values that should be templated"; exit 1; fi'
         language: system
         pass_filenames: false
 
       - id: check-template-syntax
         name: Check Jinja2 template syntax
-        entry: bash -c 'find {{cookiecutter.project_slug}} -type f \( -name "*.py" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" -o -name "*.md" \) -exec sh -c '\''grep -l "{{" "$1" > /dev/null && echo "Checking: $1"'\'' _ {} \;'
+        entry: >
+          bash -c 'find {{cookiecutter.project_slug}} -type f
+          \( -name "*.py" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" -o -name "*.md" \)
+          -exec sh -c '\''grep -l "{{" "$1" > /dev/null && echo "Checking: $1"'\'' _ {} \;'
         language: system
         pass_filenames: false
         stages: [manual]
@@ -102,4 +124,17 @@ repos:
       - id: codespell
         exclude: '(docs-reference/|\.git/)'
         args:
-          - --ignore-words-list=crate,nd,rouge,compiletime
+          - --ignore-words-list=crate,nd,rouge,compiletime,intoto,ure
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: default, rules: {line-length: {max: 120}}}']
+        exclude: '{{cookiecutter.project_slug}}'  # Exclude template files with jinja2
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix', '--disable', 'MD013', 'MD029', 'MD033', 'MD041']

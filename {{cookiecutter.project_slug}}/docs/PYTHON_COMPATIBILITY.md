@@ -65,6 +65,7 @@ The following features are **natively available** in Python 3.11+ and **do not r
 ### Standard Library Additions
 
 - **`tomllib`**: Native TOML parser (PEP 680)
+
   ```python
   import tomllib  # No need for tomli backport
 
@@ -73,6 +74,7 @@ The following features are **natively available** in Python 3.11+ and **do not r
   ```
 
 - **`asyncio.TaskGroup`**: Structured concurrency (PEP 654)
+
   ```python
   import asyncio
 
@@ -83,6 +85,7 @@ The following features are **natively available** in Python 3.11+ and **do not r
   ```
 
 - **`ExceptionGroup`**: Native exception groups (PEP 654)
+
   ```python
   try:
       ...
@@ -93,6 +96,7 @@ The following features are **natively available** in Python 3.11+ and **do not r
 ### Typing Improvements
 
 - **`typing.Self`**: Self-referential type annotations (PEP 673)
+
   ```python
   from typing import Self
 
@@ -220,6 +224,7 @@ def process(data: str | bytes) -> int | None:
 ```
 
 **Why?** While Python 3.10+ supports `|` natively, the future import:
+
 - Ensures forward compatibility
 - Makes runtime type evaluation consistent
 - Improves code clarity across versions
@@ -260,6 +265,7 @@ target-version = "py{{ cookiecutter.python_version_short }}"  # py311, py312, or
 ```
 
 This ensures Ruff:
+
 - Only suggests syntax available in your target version
 - Flags usage of deprecated or removed features
 - Applies version-appropriate optimizations
@@ -274,6 +280,7 @@ python_version = "{{ cookiecutter.python_version }}"  # 3.11, 3.12, or 3.13
 ```
 
 This ensures MyPy:
+
 - Uses correct type semantics for your version
 - Validates compatibility with your target version
 - Checks typing features availability
@@ -312,6 +319,7 @@ strategy:
 If migrating from Python 3.9 or earlier:
 
 1. **Update Python version**:
+
    ```bash
    # Install Python 3.10+
    uv python install 3.10
@@ -321,6 +329,7 @@ If migrating from Python 3.9 or earlier:
    ```
 
 2. **Add backport packages** for 3.10 compatibility:
+
    ```bash
    uv add "tomli>=2.0.0; python_version < '3.11'"
    uv add "exceptiongroup>=1.1.0; python_version < '3.11'"
@@ -328,6 +337,7 @@ If migrating from Python 3.9 or earlier:
    ```
 
 3. **Use conditional imports** for 3.10/3.11+ compatibility:
+
    ```python
    # TOML parsing - works on 3.10 and 3.11+
    try:
@@ -337,6 +347,7 @@ If migrating from Python 3.9 or earlier:
    ```
 
 4. **Test across versions**:
+
    ```bash
    nox -s test
    ```
@@ -346,11 +357,13 @@ If migrating from Python 3.9 or earlier:
 When dropping 3.10 support in the future:
 
 1. **Remove backport packages**:
+
    ```bash
    uv remove tomli exceptiongroup
    ```
 
 2. **Update imports** to use native modules:
+
    ```python
    # Before (3.10 compat)
    try:
@@ -363,6 +376,7 @@ When dropping 3.10 support in the future:
    ```
 
 3. **Update requires-python**:
+
    ```toml
    requires-python = ">=3.11,<3.15"
    ```
@@ -370,6 +384,7 @@ When dropping 3.10 support in the future:
 ### Preparing for Python 3.14
 
 Python 3.14 (expected October 2025):
+
 - Monitor deprecation warnings: `python -W default`
 - Review PEPs targeting 3.14
 - Test with pre-release versions: `uv python install 3.14.0a1`
@@ -381,6 +396,7 @@ Python 3.14 (expected October 2025):
 **Problem:** `ModuleNotFoundError: No module named 'cgi'`
 
 **Solution:** Add the replacement package:
+
 ```bash
 uv add "legacy-cgi>=2.6.1; python_version >= '3.13'"
 ```
@@ -390,11 +406,13 @@ uv add "legacy-cgi>=2.6.1; python_version >= '3.13'"
 **Problem:** `TypeError: unsupported operand type(s) for |: 'type' and 'type'`
 
 **Solution:** Add future import:
+
 ```python
 from __future__ import annotations
 ```
 
 Or run auto-fix:
+
 ```bash
 python scripts/check_type_hints.py --fix
 ```

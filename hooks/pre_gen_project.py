@@ -19,7 +19,7 @@ def validate_project_slug(project_slug: str) -> bool:
         True if valid, False otherwise
     """
     # Must be valid Python package name: lowercase, underscores, no hyphens
-    pattern = r'^[a-z][a-z0-9_]*$'
+    pattern = r"^[a-z][a-z0-9_]*$"
     return bool(re.match(pattern, project_slug))
 
 
@@ -33,7 +33,7 @@ def validate_email(email: str) -> bool:
         True if valid, False otherwise
     """
     # Basic email validation
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.match(pattern, email))
 
 
@@ -47,7 +47,7 @@ def validate_github_username(username: str) -> bool:
         True if valid, False otherwise
     """
     # GitHub username rules: alphanumeric and hyphens, no consecutive hyphens
-    pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$'
+    pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$"
     return bool(re.match(pattern, username))
 
 
@@ -92,12 +92,12 @@ def main() -> None:
 
     # Print all errors and exit if any found
     if errors:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("COOKIECUTTER PRE-GENERATION VALIDATION FAILED")
-        print("="*60 + "\n")
+        print("=" * 60 + "\n")
         for error in errors:
             print(error)
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         sys.exit(1)
 
     print("✓ Pre-generation validation passed")

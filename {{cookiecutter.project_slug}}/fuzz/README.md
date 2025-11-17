@@ -12,7 +12,9 @@ Fuzzing is an automated testing technique that feeds random or mutated data into
 ## Fuzz Harnesses
 
 ### `fuzz_input_validation.py`
+
 Tests input validation and sanitization:
+
 - Empty inputs and edge cases
 - Invalid UTF-8 sequences
 - Special characters and format strings
@@ -104,6 +106,7 @@ if __name__ == "__main__":
 ## Common Fuzzing Targets
 
 Good candidates for fuzzing:
+
 - ✅ Input parsers (JSON, XML, CSV, etc.)
 - ✅ Data validators and sanitizers
 - ✅ File format handlers
@@ -131,6 +134,7 @@ pip install atheris
 **Note**: Atheris currently works best with Python 3.11. If your project uses Python 3.12+, you may need to:
 
 1. Use Python 3.11 specifically for fuzzing:
+
    ```bash
    python3.11 -m venv fuzz-env
    source fuzz-env/bin/activate
@@ -149,6 +153,7 @@ pip install atheris
 ## Security
 
 If fuzzing discovers a security vulnerability:
+
 1. **DO NOT** commit crash samples to the repository
 2. Report to {{cookiecutter.author_email}}
 3. See [Security Policy](https://github.com/williaby/.github/blob/main/SECURITY.md)

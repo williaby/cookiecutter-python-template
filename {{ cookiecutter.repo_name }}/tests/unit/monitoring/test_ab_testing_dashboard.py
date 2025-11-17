@@ -70,7 +70,7 @@ class TestAlert:
         """Test Alert with default timestamp."""
         # Test that an alert without explicit timestamp gets a default timestamp
         before_creation = datetime.utcnow()
-        
+
         alert = Alert(
             id="alert-2",
             experiment_id="exp-2",
@@ -81,9 +81,9 @@ class TestAlert:
             current_value=150.0,
             threshold_value=100.0
         )
-        
+
         after_creation = datetime.utcnow()
-        
+
         # Verify the timestamp is between before and after creation
         assert before_creation <= alert.timestamp <= after_creation
         assert isinstance(alert.timestamp, datetime)
@@ -228,7 +228,7 @@ class TestDashboardMetrics:
         """Test DashboardMetrics with default timestamp."""
         # Test that metrics without explicit last_updated gets a default timestamp
         before_creation = datetime.utcnow()
-        
+
         metrics = DashboardMetrics(
             experiment_id="exp-1",
             experiment_name="Test",
@@ -250,9 +250,9 @@ class TestDashboardMetrics:
             risk_level="low",
             confidence_level="medium"
         )
-        
+
         after_creation = datetime.utcnow()
-        
+
         # Verify the timestamp is between before and after creation
         assert before_creation <= metrics.last_updated <= after_creation
         assert isinstance(metrics.last_updated, datetime)
@@ -298,16 +298,16 @@ class TestMetricsCollector:
     def mock_db_session(self):
         """Mock database session."""
         session = Mock()
-        
+
         # Mock experiment query
         mock_experiment = Mock()
         mock_experiment.name = "Test Experiment"
         mock_experiment.status = "running"
         session.query.return_value.filter_by.return_value.first.return_value = mock_experiment
-        
+
         # Mock user assignment count query
         session.query.return_value.filter.return_value.count.return_value = 250
-        
+
         return session
 
     async def test_collect_experiment_metrics_success(
@@ -315,11 +315,11 @@ class TestMetricsCollector:
     ):
         """Test successful metrics collection."""
         experiment_id = "exp-1"
-        
+
         # Setup mocks
         mock_experiment_manager.get_db_session.return_value.__enter__.return_value = mock_db_session
         mock_experiment_manager.get_experiment_results = AsyncMock(return_value=mock_experiment_results)
-        
+
         with patch.object(metrics_collector, '_collect_performance_timeline', return_value=[]), \
              patch.object(metrics_collector, '_collect_conversion_timeline', return_value=[]), \
              patch.object(metrics_collector, '_collect_error_timeline', return_value=[]), \
@@ -352,7 +352,7 @@ class TestMetricsCollector:
     ):
         """Test metrics collection when experiment is not found."""
         experiment_id = "nonexistent"
-        
+
         # Mock no experiment found
         mock_db_session.query.return_value.filter_by.return_value.first.return_value = None
         mock_experiment_manager.get_db_session.return_value.__enter__.return_value = mock_db_session
@@ -366,7 +366,7 @@ class TestMetricsCollector:
     ):
         """Test metrics collection when experiment results are not available."""
         experiment_id = "exp-1"
-        
+
         # Mock experiment exists but no results
         mock_experiment = Mock()
         mock_experiment.name = "Test Experiment"
@@ -383,7 +383,7 @@ class TestMetricsCollector:
     ):
         """Test metrics collection with exception."""
         experiment_id = "exp-1"
-        
+
         # Mock exception during database operation
         mock_experiment_manager.get_db_session.side_effect = Exception("Database error")
 
@@ -394,7 +394,7 @@ class TestMetricsCollector:
     async def test_collect_performance_timeline_success(self, metrics_collector):
         """Test successful performance timeline collection."""
         experiment_id = "exp-1"
-        
+
         # Mock database session and events
         mock_db_session = Mock()
         mock_event_1 = Mock()
@@ -402,20 +402,20 @@ class TestMetricsCollector:
         mock_event_1.response_time_ms = 120.0
         mock_event_1.token_reduction_percentage = 25.0
         mock_event_1.success = True
-        
+
         mock_event_2 = Mock()
         mock_event_2.timestamp = datetime(2024, 1, 1, 10, 45, 0)  # Same hour
         mock_event_2.response_time_ms = 130.0
         mock_event_2.token_reduction_percentage = 30.0
         mock_event_2.success = False
-        
+
         mock_db_session.query.return_value.filter.return_value.order_by.return_value.all.return_value = [
             mock_event_1, mock_event_2
         ]
 
         with patch('src.monitoring.ab_testing_dashboard.datetime') as mock_datetime:
             mock_datetime.utcnow.return_value = datetime(2024, 1, 8, 12, 0, 0)  # 7 days later
-            
+
             result = await metrics_collector._collect_performance_timeline(experiment_id, mock_db_session)
 
         assert len(result) == 1  # Grouped by hour
@@ -440,14 +440,14 @@ class TestMetricsCollector:
         """Test performance timeline collection with missing data fields."""
         experiment_id = "exp-1"
         mock_db_session = Mock()
-        
+
         # Mock event with missing fields
         mock_event = Mock()
         mock_event.timestamp = datetime(2024, 1, 1, 10, 30, 0)
         mock_event.response_time_ms = None
         mock_event.token_reduction_percentage = None
         mock_event.success = True
-        
+
         mock_db_session.query.return_value.filter.return_value.order_by.return_value.all.return_value = [mock_event]
 
         result = await metrics_collector._collect_performance_timeline(experiment_id, mock_db_session)
@@ -463,16 +463,16 @@ class TestMetricsCollector:
         """Test successful conversion timeline collection."""
         experiment_id = "exp-1"
         mock_db_session = Mock()
-        
+
         # Mock conversion events
         mock_event_1 = Mock()
         mock_event_1.timestamp = datetime(2024, 1, 1, 10, 30, 0)
         mock_event_1.success = True
-        
+
         mock_event_2 = Mock()
         mock_event_2.timestamp = datetime(2024, 1, 1, 10, 45, 0)
         mock_event_2.success = False
-        
+
         mock_db_session.query.return_value.filter.return_value.order_by.return_value.all.return_value = [
             mock_event_1, mock_event_2
         ]
@@ -487,7 +487,7 @@ class TestMetricsCollector:
                     "total_users": 2
                 }
             ]
-            
+
             result = await metrics_collector._collect_conversion_timeline(experiment_id, mock_db_session)
 
         assert len(result) == 1
@@ -510,7 +510,7 @@ class TestMetricsCollector:
                     "total_requests": 20
                 }
             ]
-            
+
             result = await metrics_collector._collect_error_timeline(experiment_id, mock_db_session)
 
         assert len(result) == 1
@@ -537,7 +537,7 @@ class TestMetricsCollector:
                     threshold_value=5.0
                 )
             ]
-            
+
             alerts = await metrics_collector._generate_alerts(experiment_id, mock_results)
 
         assert len(alerts) == 1
@@ -557,7 +557,7 @@ class TestMetricsCollector:
                 "Consider concluding experiment",
                 "Treatment shows improvement"
             ]
-            
+
             recommendations = metrics_collector._generate_recommendations(mock_results)
 
         assert len(recommendations) >= 1
@@ -571,7 +571,7 @@ class TestMetricsCollector:
 
         with patch.object(metrics_collector, '_assess_risk_level') as mock_method:
             mock_method.return_value = "low"
-            
+
             risk_level = metrics_collector._assess_risk_level(mock_results, error_rate)
 
         assert risk_level == "low"
@@ -584,7 +584,7 @@ class TestMetricsCollector:
 
         with patch.object(metrics_collector, '_assess_risk_level') as mock_method:
             mock_method.return_value = "high"
-            
+
             risk_level = metrics_collector._assess_risk_level(mock_results, error_rate)
 
         assert risk_level == "high"
@@ -597,7 +597,7 @@ class TestMetricsCollector:
 
         with patch.object(metrics_collector, '_assess_confidence_level') as mock_method:
             mock_method.return_value = "high"
-            
+
             confidence_level = metrics_collector._assess_confidence_level(mock_results)
 
         assert confidence_level == "high"
@@ -610,7 +610,7 @@ class TestMetricsCollector:
 
         with patch.object(metrics_collector, '_assess_confidence_level') as mock_method:
             mock_method.return_value = "low"
-            
+
             confidence_level = metrics_collector._assess_confidence_level(mock_results)
 
         assert confidence_level == "low"
@@ -625,7 +625,7 @@ class TestIntegrationScenarios:
         """Complete dashboard system setup."""
         mock_experiment_manager = Mock()
         metrics_collector = MetricsCollector(experiment_manager=mock_experiment_manager)
-        
+
         return {
             "metrics_collector": metrics_collector,
             "experiment_manager": mock_experiment_manager
@@ -635,9 +635,9 @@ class TestIntegrationScenarios:
         """Test complete metrics collection workflow."""
         metrics_collector = complete_system["metrics_collector"]
         experiment_manager = complete_system["experiment_manager"]
-        
+
         experiment_id = "exp-integration-test"
-        
+
         # Setup comprehensive mock data
         mock_db_session = Mock()
         mock_experiment = Mock()
@@ -645,7 +645,7 @@ class TestIntegrationScenarios:
         mock_experiment.status = "running"
         mock_db_session.query.return_value.filter_by.return_value.first.return_value = mock_experiment
         mock_db_session.query.return_value.filter.return_value.count.return_value = 500
-        
+
         mock_results = Mock()
         mock_results.total_users = 2000
         mock_results.statistical_significance = 0.95
@@ -658,14 +658,14 @@ class TestIntegrationScenarios:
             "control": {"users": 1000, "success_rate": 0.94},
             "treatment": {"users": 1000, "success_rate": 0.98}
         }
-        
+
         # Set up context manager properly
         context_manager = Mock()
         context_manager.__enter__ = Mock(return_value=mock_db_session)
         context_manager.__exit__ = Mock(return_value=None)
         experiment_manager.get_db_session.return_value = context_manager
         experiment_manager.get_experiment_results = AsyncMock(return_value=mock_results)
-        
+
         # Mock all timeline and assessment methods
         with patch.object(metrics_collector, '_collect_performance_timeline') as mock_perf, \
              patch.object(metrics_collector, '_collect_conversion_timeline') as mock_conv, \
@@ -674,7 +674,7 @@ class TestIntegrationScenarios:
              patch.object(metrics_collector, '_generate_recommendations') as mock_recs, \
              patch.object(metrics_collector, '_assess_risk_level') as mock_risk, \
              patch.object(metrics_collector, '_assess_confidence_level') as mock_conf:
-            
+
             mock_perf.return_value = [
                 {"timestamp": "2024-01-01T10:00:00", "avg_response_time_ms": 110.0, "success_rate": 96.0}
             ]
@@ -688,7 +688,7 @@ class TestIntegrationScenarios:
             mock_recs.return_value = ["Continue experiment - showing positive results"]
             mock_risk.return_value = "low"
             mock_conf.return_value = "high"
-            
+
             result = await metrics_collector.collect_experiment_metrics(experiment_id)
 
         # Verify complete metrics collection
@@ -713,15 +713,15 @@ class TestIntegrationScenarios:
         """Test system behavior under various error conditions."""
         metrics_collector = complete_system["metrics_collector"]
         experiment_manager = complete_system["experiment_manager"]
-        
+
         experiment_id = "exp-error-test"
-        
+
         # Test scenario 1: Database connection failure
         experiment_manager.get_db_session.side_effect = Exception("Database connection failed")
-        
+
         result = await metrics_collector.collect_experiment_metrics(experiment_id)
         assert result is None
-        
+
         # Test scenario 2: Partial data corruption
         experiment_manager.get_db_session.side_effect = None
         mock_db_session = Mock()
@@ -730,21 +730,21 @@ class TestIntegrationScenarios:
         mock_experiment.status = "running"
         mock_db_session.query.return_value.filter_by.return_value.first.return_value = mock_experiment
         mock_db_session.query.return_value.filter.return_value.count.return_value = 25  # Mock active users count
-        
+
         # Mock results with missing performance summary
         mock_results = Mock()
         mock_results.total_users = 100
         mock_results.statistical_significance = 0.5
         mock_results.performance_summary = {}  # Empty performance summary
         mock_results.variants = {}
-        
+
         # Set up context manager properly
         context_manager = Mock()
         context_manager.__enter__ = Mock(return_value=mock_db_session)
         context_manager.__exit__ = Mock(return_value=None)
         experiment_manager.get_db_session.return_value = context_manager
         experiment_manager.get_experiment_results = AsyncMock(return_value=mock_results)
-        
+
         with patch.object(metrics_collector, '_collect_performance_timeline', return_value=[]), \
              patch.object(metrics_collector, '_collect_conversion_timeline', return_value=[]), \
              patch.object(metrics_collector, '_collect_error_timeline', return_value=[]), \
@@ -752,7 +752,7 @@ class TestIntegrationScenarios:
              patch.object(metrics_collector, '_generate_recommendations', return_value=[]), \
              patch.object(metrics_collector, '_assess_risk_level', return_value="unknown"), \
              patch.object(metrics_collector, '_assess_confidence_level', return_value="low"):
-            
+
             result = await metrics_collector.collect_experiment_metrics(experiment_id)
 
         # Should handle missing data gracefully
@@ -766,9 +766,9 @@ class TestIntegrationScenarios:
         """Test handling of high-volume experiment data."""
         metrics_collector = complete_system["metrics_collector"]
         experiment_manager = complete_system["experiment_manager"]
-        
+
         experiment_id = "exp-high-volume"
-        
+
         # Setup high-volume scenario
         mock_db_session = Mock()
         mock_experiment = Mock()
@@ -776,7 +776,7 @@ class TestIntegrationScenarios:
         mock_experiment.status = "running"
         mock_db_session.query.return_value.filter_by.return_value.first.return_value = mock_experiment
         mock_db_session.query.return_value.filter.return_value.count.return_value = 50000  # High active user count
-        
+
         mock_results = Mock()
         mock_results.total_users = 100000  # Large user base
         mock_results.statistical_significance = 0.999
@@ -789,14 +789,14 @@ class TestIntegrationScenarios:
             "control": {"users": 50000, "success_rate": 0.985},
             "treatment": {"users": 50000, "success_rate": 0.989}
         }
-        
+
         # Set up context manager properly
         context_manager = Mock()
         context_manager.__enter__ = Mock(return_value=mock_db_session)
         context_manager.__exit__ = Mock(return_value=None)
         experiment_manager.get_db_session.return_value = context_manager
         experiment_manager.get_experiment_results = AsyncMock(return_value=mock_results)
-        
+
         # Mock high-volume timeline data
         with patch.object(metrics_collector, '_collect_performance_timeline') as mock_perf, \
              patch.object(metrics_collector, '_collect_conversion_timeline') as mock_conv, \
@@ -805,7 +805,7 @@ class TestIntegrationScenarios:
              patch.object(metrics_collector, '_generate_recommendations') as mock_recs, \
              patch.object(metrics_collector, '_assess_risk_level') as mock_risk, \
              patch.object(metrics_collector, '_assess_confidence_level') as mock_conf:
-            
+
             # Simulate 24 hours of hourly data
             mock_perf.return_value = [
                 {"timestamp": f"2024-01-01T{hour:02d}:00:00", "avg_response_time_ms": 95.0 + hour, "success_rate": 98.7}
@@ -823,7 +823,7 @@ class TestIntegrationScenarios:
             mock_recs.return_value = ["Highly significant results", "Consider deployment"]
             mock_risk.return_value = "low"
             mock_conf.return_value = "high"
-            
+
             result = await metrics_collector.collect_experiment_metrics(experiment_id)
 
         # Verify high-volume data handling

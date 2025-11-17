@@ -120,7 +120,7 @@ def initialize_git() -> None:
         if run_command(["git", "add", "."], check=False):
             if run_command(
                 ["git", "commit", "-m", "Initial commit from cookiecutter template"],
-                check=False
+                check=False,
             ):
                 print("  ✓ Initial commit created")
     else:
@@ -141,7 +141,9 @@ def setup_pre_commit() -> None:
         else:
             print("  ⚠ Failed to install pre-commit hooks")
     else:
-        print("  ⚠ pre-commit not found - run 'uv sync' and 'uv run pre-commit install'")
+        print(
+            "  ⚠ pre-commit not found - run 'uv sync' and 'uv run pre-commit install'"
+        )
 
 
 def create_initial_directories() -> None:
@@ -167,7 +169,7 @@ def create_initial_directories() -> None:
 def setup_claude_user_settings() -> None:
     """Interactively set up user-level Claude Code settings."""
     print("\n🤖 Claude Code User-Level Settings Setup")
-    print("="*60)
+    print("=" * 60)
 
     # Check common locations for existing settings
     possible_locations = [
@@ -196,22 +198,30 @@ def setup_claude_user_settings() -> None:
 
     # Get user input
     try:
-        response = input("\n  Would you like to set up user-level Claude settings? (Y/n): ").strip().lower()
+        response = (
+            input("\n  Would you like to set up user-level Claude settings? (Y/n): ")
+            .strip()
+            .lower()
+        )
     except (EOFError, KeyboardInterrupt):
         print("\n  Skipping user-level settings setup.")
         return
 
     # Default to yes if empty response
-    if response in ['', 'y', 'yes']:
+    if response in ["", "y", "yes"]:
         default_repo = "https://github.com/williaby/.claude"
         default_location = str(Path.home() / ".claude")
 
         try:
-            repo_url = input(f"\n  Settings repo URL (press Enter for default: {default_repo}): ").strip()
+            repo_url = input(
+                f"\n  Settings repo URL (press Enter for default: {default_repo}): "
+            ).strip()
             if not repo_url:
                 repo_url = default_repo
 
-            install_location = input(f"  Install location (press Enter for default: {default_location}): ").strip()
+            install_location = input(
+                f"  Install location (press Enter for default: {default_location}): "
+            ).strip()
             if not install_location:
                 install_location = default_location
 
@@ -231,15 +241,21 @@ def setup_claude_user_settings() -> None:
                     installed_items.append("skills/")
                 if (install_path / "agents").exists():
                     installed_items.append("agents/")
-                if (install_path / ".claude" / "commands").exists() or (install_path / "commands").exists():
+                if (install_path / ".claude" / "commands").exists() or (
+                    install_path / "commands"
+                ).exists():
                     installed_items.append("slash commands")
 
                 if installed_items:
                     print(f"  ✓ Installed: {', '.join(installed_items)}")
 
-                print("\n  ✅ User-level settings are now available to all Claude Code sessions!")
+                print(
+                    "\n  ✅ User-level settings are now available to all Claude Code sessions!"
+                )
             else:
-                print("  ⚠ Failed to clone settings repo. You can manually set up later:")
+                print(
+                    "  ⚠ Failed to clone settings repo. You can manually set up later:"
+                )
                 print(f"     git clone {repo_url} {install_path}")
 
         except (EOFError, KeyboardInterrupt):
@@ -256,9 +272,9 @@ def print_success_message() -> None:
     use_pre_commit = "{{ cookiecutter.use_pre_commit }}" == "yes"
     use_mkdocs = "{{ cookiecutter.use_mkdocs }}" == "yes"
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"🎉 SUCCESS! {project_name} has been created!")
-    print("="*60)
+    print("=" * 60)
 
     print("\n📦 Next steps:")
     print("\n  1. Navigate to your project:")
@@ -286,12 +302,12 @@ def print_success_message() -> None:
     print("\n  7. Create GitHub repository:")
     print(f"     gh repo create {project_slug} --public --source=.")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("📚 Documentation:")
     print("  - README.md: Project overview and quick start")
     print("  - CONTRIBUTING.md: Contribution guidelines")
     print("  - CLAUDE.md: Claude Code development guidance")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 def main() -> None:

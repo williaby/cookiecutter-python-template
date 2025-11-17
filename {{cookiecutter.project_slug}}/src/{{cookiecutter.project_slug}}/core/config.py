@@ -32,4 +32,3 @@ class Settings(BaseSettings):
 
 # A single, global instance of the settings
 settings = Settings()
-

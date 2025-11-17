@@ -29,6 +29,7 @@ echo ""
 echo "=== File Summary ==="
 echo "Total files in git: $(git ls-files | wc -l)"
 echo "Analysis documents: $(ls -1 docs-reference/analysis/*.md 2>/dev/null | wc -l || echo "0")"
+# shellcheck disable=SC1083
 echo "Template files: $(find {{cookiecutter.project_slug}} -type f 2>/dev/null | wc -l || echo "0")"
 echo ""
 

@@ -8,6 +8,7 @@ This project follows [OpenSSF (Open Source Security Foundation)](https://openssf
 **Best Practices Compliance**: 95%+ (Passing)
 
 This template implements comprehensive security controls including:
+
 - ✅ Signed releases with Sigstore/Cosign
 - ✅ SLSA Level 3 provenance attestations
 - ✅ Continuous fuzzing with ClusterFuzzLite
@@ -24,6 +25,7 @@ This template implements comprehensive security controls including:
 All releases are cryptographically signed using [Sigstore/Cosign](https://www.sigstore.dev/) for keyless signing.
 
 **What it provides:**
+
 - Cryptographic proof of authenticity
 - Verification that releases come from this repository
 - Protection against supply chain attacks
@@ -57,6 +59,7 @@ cosign verify-blob \
 [SLSA (Supply-chain Levels for Software Artifacts)](https://slsa.dev/) Level 3 provenance attestations are generated for all releases.
 
 **What it provides:**
+
 - Build environment details
 - Source repository verification
 - Complete build reproducibility metadata
@@ -81,6 +84,7 @@ slsa-verifier verify-artifact package.whl \
 Automated fuzzing with [ClusterFuzzLite](https://google.github.io/clusterfuzzlite/) discovers security vulnerabilities.
 
 **What it provides:**
+
 - Discovery of crashes and hangs
 - Memory safety violations (via AddressSanitizer)
 - Edge case detection
@@ -100,6 +104,7 @@ python fuzz/fuzz_input_validation.py -max_total_time=60
 ```
 
 **View fuzzing results**:
+
 - GitHub Security tab → Code scanning alerts
 - Workflow artifacts (crash samples)
 
@@ -108,6 +113,7 @@ python fuzz/fuzz_input_validation.py -max_total_time=60
 Enforced branch protection rules prevent unauthorized changes.
 
 **Protection rules**:
+
 - ✅ Required status checks (CI Gate, Security Analysis)
 - ✅ Required pull request reviews (1 approval)
 - ✅ Code owner reviews required
@@ -129,6 +135,7 @@ python scripts/setup_github_protection.py
 ```
 
 **Manual setup**:
+
 1. Go to: `https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/settings/branches`
 2. Click "Add branch protection rule"
 3. Apply protection pattern: `main`
@@ -141,6 +148,7 @@ All GitHub Actions workflows use **least-privilege permissions**.
 **Principle**: Grant only the minimum permissions needed for each job.
 
 **Implementation**:
+
 ```yaml
 permissions:
   contents: read        # For checkout
@@ -149,6 +157,7 @@ permissions:
 ```
 
 **Not this**:
+
 ```yaml
 permissions: read-all  # ❌ Too permissive
 ```
@@ -158,12 +167,14 @@ permissions: read-all  # ❌ Too permissive
 Automated dependency updates and vulnerability scanning.
 
 **Tools**:
+
 - **Renovate**: Automated dependency updates
 - **Safety**: Python dependency CVE scanning
 - **OSV-Scanner**: Multi-ecosystem vulnerability detection
 - **Google Assured OSS**: Vetted, secure packages
 
 **Configuration**:
+
 - `renovate.json` - Update automation
 - `osv-scanner.toml` - Vulnerability exceptions
 - `.env.example` - Assured OSS configuration
@@ -173,6 +184,7 @@ Automated dependency updates and vulnerability scanning.
 Comprehensive static analysis on every commit.
 
 **Tools**:
+
 - **Ruff**: Python linting with security rules
 - **Bandit**: Python security issue detection
 - **MyPy**: Type safety (prevents entire classes of bugs)
@@ -185,6 +197,7 @@ Comprehensive static analysis on every commit.
 Ensures test quality with [mutmut](https://mutmut.readthedocs.io/).
 
 **What it does**:
+
 - Mutates source code (changes operators, values, etc.)
 - Runs tests against mutated code
 - Verifies tests catch the mutations
@@ -193,6 +206,7 @@ Ensures test quality with [mutmut](https://mutmut.readthedocs.io/).
 **Configuration**: `pyproject.toml` → `[tool.mutmut]`
 
 **Usage**:
+
 ```bash
 # Run mutation testing
 mutmut run
@@ -232,7 +246,7 @@ mutmut show
 ### Remaining Improvements
 
 1. **CII Best Practices Badge** (Easy - 30 minutes)
-   - Register at: https://www.bestpractices.dev/
+   - Register at: <https://www.bestpractices.dev/>
    - Answer ~60 questions about your project
    - Add badge to README
 
@@ -249,6 +263,7 @@ mutmut show
 The template meets 44/46 passing-level criteria:
 
 **Basics** (6/6):
+
 - ✅ Project website with clear description
 - ✅ OSI-approved license
 - ✅ Comprehensive documentation
@@ -257,21 +272,25 @@ The template meets 44/46 passing-level criteria:
 - ✅ English documentation
 
 **Change Control** (3/3):
+
 - ✅ Public version-controlled repository
 - ✅ Unique version numbering (semantic versioning)
 - ✅ Release notes (CHANGELOG.md)
 
 **Reporting** (2/2):
+
 - ✅ Bug reporting process (GitHub Issues)
 - ✅ Vulnerability reporting (org-level SECURITY.md)
 
 **Quality** (4/4):
+
 - ✅ Automated build system (UV)
 - ✅ Automated test suite (pytest)
 - ✅ New functionality testing policy
 - ✅ Compiler warnings (Ruff + MyPy)
 
 **Security** (5/5):
+
 - ✅ Secure development knowledge
 - ✅ Basic cryptographic practices
 - ✅ Secured delivery (HTTPS)
@@ -279,6 +298,7 @@ The template meets 44/46 passing-level criteria:
 - ✅ No credential leakage
 
 **Analysis** (3/3):
+
 - ✅ Static code analysis (Ruff, Bandit, MyPy)
 - ✅ Dynamic analysis (Hypothesis, pytest)
 - ✅ Memory safety (Python is memory-safe)
@@ -290,6 +310,7 @@ The template meets 44/46 passing-level criteria:
 ### Release Process
 
 1. **Tag Release**:
+
    ```bash
    git tag -a v1.0.0 -m "Release 1.0.0"
    git push origin v1.0.0

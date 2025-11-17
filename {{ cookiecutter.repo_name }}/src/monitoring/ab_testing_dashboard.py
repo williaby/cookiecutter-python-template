@@ -57,7 +57,7 @@ class MetricType(Enum):
 @dataclass
 class Alert:
     """Alert for experiment monitoring."""
-    
+
     id: str
     experiment_id: str
     level: AlertLevel
@@ -68,7 +68,7 @@ class Alert:
     threshold_value: float
     timestamp: datetime = field(default_factory=datetime.utcnow)
     acknowledged: bool = False
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert alert to dictionary."""
         return {
@@ -88,42 +88,42 @@ class Alert:
 @dataclass
 class DashboardMetrics:
     """Complete dashboard metrics for an experiment."""
-    
+
     experiment_id: str
     experiment_name: str
     status: str
-    
+
     # Overview metrics
     total_users: int
     active_users_24h: int
     conversion_rate: float
     statistical_significance: float
-    
+
     # Performance metrics
     avg_response_time_ms: float
     avg_token_reduction: float
     success_rate: float
     error_rate: float
-    
+
     # Variant comparison
     variants: Dict[str, Dict[str, Any]]
-    
+
     # Time series data
     performance_timeline: List[Dict[str, Any]]
     conversion_timeline: List[Dict[str, Any]]
     error_timeline: List[Dict[str, Any]]
-    
+
     # Alerts and recommendations
     active_alerts: List[Alert]
     recommendations: List[str]
-    
+
     # Risk assessment
     risk_level: str  # low, medium, high, critical
     confidence_level: str  # low, medium, high
-    
+
     # Metadata
     last_updated: datetime = field(default_factory=datetime.utcnow)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
@@ -152,63 +152,63 @@ class DashboardMetrics:
 
 class MetricsCollector(ObservabilityMixin):
     """Collects and aggregates metrics for dashboard display."""
-    
+
     def __init__(self, experiment_manager: ExperimentManager):
         super().__init__()
         self.experiment_manager = experiment_manager
         self.logger = logging.getLogger(__name__)
-    
+
     async def collect_experiment_metrics(self, experiment_id: str) -> Optional[DashboardMetrics]:
         """Collect comprehensive metrics for an experiment."""
         try:
             with self.experiment_manager.get_db_session() as db_session:
                 from ..core.ab_testing_framework import ExperimentModel, UserAssignmentModel, MetricEventModel
-                
+
                 # Get experiment details
                 experiment = db_session.query(ExperimentModel).filter_by(id=experiment_id).first()
                 if not experiment:
                     return None
-                
+
                 # Get experiment results
                 results = await self.experiment_manager.get_experiment_results(experiment_id)
                 if not results:
                     return None
-                
+
                 # Collect overview metrics
                 total_users = results.total_users
-                
+
                 # Get active users in last 24h
                 cutoff_time = datetime.utcnow() - timedelta(hours=24)
                 active_users_24h = db_session.query(UserAssignmentModel).filter(
                     UserAssignmentModel.experiment_id == experiment_id,
                     UserAssignmentModel.last_interaction >= cutoff_time
                 ).count()
-                
+
                 # Calculate conversion rate (success rate as proxy)
                 conversion_rate = results.performance_summary.get("overall_success_rate", 0.0) * 100
-                
+
                 # Collect performance metrics
                 perf_summary = results.performance_summary
                 avg_response_time = perf_summary.get("avg_response_time_ms", 0.0)
                 avg_token_reduction = perf_summary.get("avg_token_reduction", 0.0)
                 success_rate = perf_summary.get("overall_success_rate", 0.0) * 100
                 error_rate = (1.0 - perf_summary.get("overall_success_rate", 1.0)) * 100
-                
+
                 # Collect time series data
                 performance_timeline = await self._collect_performance_timeline(experiment_id, db_session)
                 conversion_timeline = await self._collect_conversion_timeline(experiment_id, db_session)
                 error_timeline = await self._collect_error_timeline(experiment_id, db_session)
-                
+
                 # Generate alerts
                 active_alerts = await self._generate_alerts(experiment_id, results)
-                
+
                 # Generate recommendations
                 recommendations = self._generate_recommendations(results)
-                
+
                 # Assess risk level
                 risk_level = self._assess_risk_level(results, error_rate)
                 confidence_level = self._assess_confidence_level(results)
-                
+
                 return DashboardMetrics(
                     experiment_id=experiment_id,
                     experiment_name=experiment.name,
@@ -230,25 +230,25 @@ class MetricsCollector(ObservabilityMixin):
                     risk_level=risk_level,
                     confidence_level=confidence_level
                 )
-                
+
         except Exception as e:
             self.logger.error(f"Failed to collect metrics for experiment {experiment_id}: {e}")
             return None
-    
+
     async def _collect_performance_timeline(self, experiment_id: str, db_session) -> List[Dict[str, Any]]:
         """Collect performance metrics over time."""
         try:
             from ..core.ab_testing_framework import MetricEventModel
-            
+
             # Get performance events from last 7 days
             cutoff_time = datetime.utcnow() - timedelta(days=7)
-            
+
             events = db_session.query(MetricEventModel).filter(
                 MetricEventModel.experiment_id == experiment_id,
                 MetricEventModel.event_type == "performance",
                 MetricEventModel.timestamp >= cutoff_time
             ).order_by(MetricEventModel.timestamp).all()
-            
+
             # Group by hour and calculate averages
             timeline = {}
             for event in events:
@@ -261,18 +261,18 @@ class MetricsCollector(ObservabilityMixin):
                         "success_count": 0,
                         "total_count": 0
                     }
-                
+
                 timeline[hour_key]["total_count"] += 1
-                
+
                 if event.response_time_ms:
                     timeline[hour_key]["response_times"].append(event.response_time_ms)
-                
+
                 if event.token_reduction_percentage:
                     timeline[hour_key]["token_reductions"].append(event.token_reduction_percentage)
-                
+
                 if event.success:
                     timeline[hour_key]["success_count"] += 1
-            
+
             # Calculate averages
             result = []
             for hour_data in timeline.values():
@@ -288,7 +288,7 @@ class MetricsCollector(ObservabilityMixin):
                     hour_data["success_count"] / hour_data["total_count"]
                     if hour_data["total_count"] > 0 else 0.0
                 )
-                
+
                 result.append({
                     "timestamp": hour_data["timestamp"],
                     "avg_response_time_ms": avg_response_time,
@@ -296,27 +296,27 @@ class MetricsCollector(ObservabilityMixin):
                     "success_rate": success_rate * 100,
                     "total_requests": hour_data["total_count"]
                 })
-            
+
             return sorted(result, key=lambda x: x["timestamp"])
-            
+
         except Exception as e:
             self.logger.error(f"Failed to collect performance timeline: {e}")
             return []
-    
+
     async def _collect_conversion_timeline(self, experiment_id: str, db_session) -> List[Dict[str, Any]]:
         """Collect conversion metrics over time."""
         try:
             from ..core.ab_testing_framework import MetricEventModel
-            
+
             # Get optimization events (successful token reductions are conversions)
             cutoff_time = datetime.utcnow() - timedelta(days=7)
-            
+
             events = db_session.query(MetricEventModel).filter(
                 MetricEventModel.experiment_id == experiment_id,
                 MetricEventModel.event_type == "optimization",
                 MetricEventModel.timestamp >= cutoff_time
             ).order_by(MetricEventModel.timestamp).all()
-            
+
             # Group by hour and calculate conversion rates
             timeline = {}
             for event in events:
@@ -327,13 +327,13 @@ class MetricsCollector(ObservabilityMixin):
                         "conversions": 0,
                         "total_attempts": 0
                     }
-                
+
                 timeline[hour_key]["total_attempts"] += 1
-                
+
                 # Consider successful token reduction above 70% as conversion
                 if event.token_reduction_percentage and event.token_reduction_percentage >= 70.0:
                     timeline[hour_key]["conversions"] += 1
-            
+
             # Calculate conversion rates
             result = []
             for hour_data in timeline.values():
@@ -341,33 +341,33 @@ class MetricsCollector(ObservabilityMixin):
                     hour_data["conversions"] / hour_data["total_attempts"]
                     if hour_data["total_attempts"] > 0 else 0.0
                 )
-                
+
                 result.append({
                     "timestamp": hour_data["timestamp"],
                     "conversion_rate": conversion_rate * 100,
                     "conversions": hour_data["conversions"],
                     "total_attempts": hour_data["total_attempts"]
                 })
-            
+
             return sorted(result, key=lambda x: x["timestamp"])
-            
+
         except Exception as e:
             self.logger.error(f"Failed to collect conversion timeline: {e}")
             return []
-    
+
     async def _collect_error_timeline(self, experiment_id: str, db_session) -> List[Dict[str, Any]]:
         """Collect error metrics over time."""
         try:
             from ..core.ab_testing_framework import MetricEventModel
-            
+
             # Get all events from last 7 days
             cutoff_time = datetime.utcnow() - timedelta(days=7)
-            
+
             events = db_session.query(MetricEventModel).filter(
                 MetricEventModel.experiment_id == experiment_id,
                 MetricEventModel.timestamp >= cutoff_time
             ).order_by(MetricEventModel.timestamp).all()
-            
+
             # Group by hour and calculate error rates
             timeline = {}
             for event in events:
@@ -378,12 +378,12 @@ class MetricsCollector(ObservabilityMixin):
                         "errors": 0,
                         "total_events": 0
                     }
-                
+
                 timeline[hour_key]["total_events"] += 1
-                
+
                 if event.event_type == "error" or event.success is False:
                     timeline[hour_key]["errors"] += 1
-            
+
             # Calculate error rates
             result = []
             for hour_data in timeline.values():
@@ -391,24 +391,24 @@ class MetricsCollector(ObservabilityMixin):
                     hour_data["errors"] / hour_data["total_events"]
                     if hour_data["total_events"] > 0 else 0.0
                 )
-                
+
                 result.append({
                     "timestamp": hour_data["timestamp"],
                     "error_rate": error_rate * 100,
                     "error_count": hour_data["errors"],
                     "total_events": hour_data["total_events"]
                 })
-            
+
             return sorted(result, key=lambda x: x["timestamp"])
-            
+
         except Exception as e:
             self.logger.error(f"Failed to collect error timeline: {e}")
             return []
-    
+
     async def _generate_alerts(self, experiment_id: str, results: ExperimentResults) -> List[Alert]:
         """Generate alerts based on experiment results."""
         alerts = []
-        
+
         try:
             # High error rate alert
             error_rate = (1.0 - results.performance_summary.get("overall_success_rate", 1.0)) * 100
@@ -423,7 +423,7 @@ class MetricsCollector(ObservabilityMixin):
                     current_value=error_rate,
                     threshold_value=10.0
                 ))
-            
+
             # Poor performance alert
             avg_response_time = results.performance_summary.get("avg_response_time_ms", 0.0)
             if avg_response_time > 500.0:
@@ -437,7 +437,7 @@ class MetricsCollector(ObservabilityMixin):
                     current_value=avg_response_time,
                     threshold_value=500.0
                 ))
-            
+
             # Low token reduction alert
             avg_token_reduction = results.performance_summary.get("avg_token_reduction", 0.0)
             if avg_token_reduction < 50.0:
@@ -451,7 +451,7 @@ class MetricsCollector(ObservabilityMixin):
                     current_value=avg_token_reduction,
                     threshold_value=70.0
                 ))
-            
+
             # Statistical significance alert
             if results.statistical_significance < 80.0 and results.total_users > 500:
                 alerts.append(Alert(
@@ -464,7 +464,7 @@ class MetricsCollector(ObservabilityMixin):
                     current_value=results.statistical_significance,
                     threshold_value=95.0
                 ))
-            
+
             # Check failure thresholds
             for threshold_name, exceeded in results.failure_thresholds_exceeded.items():
                 if exceeded:
@@ -478,16 +478,16 @@ class MetricsCollector(ObservabilityMixin):
                         current_value=1.0,
                         threshold_value=0.0
                     ))
-            
+
         except Exception as e:
             self.logger.error(f"Failed to generate alerts: {e}")
-        
+
         return alerts
-    
+
     def _generate_recommendations(self, results: ExperimentResults) -> List[str]:
         """Generate actionable recommendations based on results."""
         recommendations = []
-        
+
         try:
             # Recommendation based on overall performance
             if results.recommendation == "expand":
@@ -502,87 +502,87 @@ class MetricsCollector(ObservabilityMixin):
             elif results.recommendation == "modify":
                 recommendations.append("🔧 Consider modifying experiment parameters.")
                 recommendations.append("💡 Review alternative optimization strategies.")
-            
+
             # Specific metric-based recommendations
             error_rate = (1.0 - results.performance_summary.get("overall_success_rate", 1.0)) * 100
             if error_rate > 5.0:
                 recommendations.append(f"🚨 Error rate ({error_rate:.1f}%) requires immediate attention.")
-            
+
             avg_response_time = results.performance_summary.get("avg_response_time_ms", 0.0)
             if avg_response_time > 300.0:
                 recommendations.append(f"⏱️ Response time ({avg_response_time:.1f}ms) needs optimization.")
-            
+
             avg_token_reduction = results.performance_summary.get("avg_token_reduction", 0.0)
             if avg_token_reduction < 70.0:
                 recommendations.append(f"🎯 Token reduction ({avg_token_reduction:.1f}%) below target - review strategy.")
-            
+
             # Statistical significance recommendations
             if results.statistical_significance < 95.0:
                 if results.total_users < 1000:
                     recommendations.append("👥 Increase sample size to improve statistical significance.")
                 else:
                     recommendations.append("📊 Consider longer experiment duration for better significance.")
-            
+
             # Success criteria recommendations
             success_rate = sum(results.success_criteria_met.values()) / len(results.success_criteria_met) if results.success_criteria_met else 0.0
             if success_rate < 0.8:
                 recommendations.append("🎯 Review success criteria - some targets may not be achievable.")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to generate recommendations: {e}")
-        
+
         return recommendations
-    
+
     def _assess_risk_level(self, results: ExperimentResults, error_rate: float) -> str:
         """Assess risk level based on experiment performance."""
         try:
             # Critical risk conditions
             if any(results.failure_thresholds_exceeded.values()):
                 return "critical"
-            
+
             if error_rate > 15.0:
                 return "critical"
-            
+
             # High risk conditions
             if error_rate > 8.0:
                 return "high"
-            
+
             avg_response_time = results.performance_summary.get("avg_response_time_ms", 0.0)
             if avg_response_time > 800.0:
                 return "high"
-            
+
             # Medium risk conditions
             if error_rate > 3.0:
                 return "medium"
-            
+
             avg_token_reduction = results.performance_summary.get("avg_token_reduction", 0.0)
             if avg_token_reduction < 50.0:
                 return "medium"
-            
+
             # Low risk (good performance)
             return "low"
-            
+
         except Exception as e:
             self.logger.error(f"Failed to assess risk level: {e}")
             return "medium"
-    
+
     def _assess_confidence_level(self, results: ExperimentResults) -> str:
         """Assess confidence level in experiment results."""
         try:
             # High confidence conditions
-            if (results.statistical_significance >= 95.0 and 
+            if (results.statistical_significance >= 95.0 and
                 results.total_users >= 1000 and
                 results.duration_hours >= 48):
                 return "high"
-            
+
             # Medium confidence conditions
-            if (results.statistical_significance >= 80.0 and 
+            if (results.statistical_significance >= 80.0 and
                 results.total_users >= 500):
                 return "medium"
-            
+
             # Low confidence (insufficient data)
             return "low"
-            
+
         except Exception as e:
             self.logger.error(f"Failed to assess confidence level: {e}")
             return "low"
@@ -590,25 +590,25 @@ class MetricsCollector(ObservabilityMixin):
 
 class DashboardVisualizer:
     """Creates visualizations for the A/B testing dashboard."""
-    
+
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-    
+
     def create_performance_chart(self, timeline_data: List[Dict[str, Any]]) -> str:
         """Create performance timeline chart."""
         try:
             if not timeline_data:
                 return self._create_empty_chart("No performance data available")
-            
+
             df = pd.DataFrame(timeline_data)
-            
+
             # Create subplot with secondary y-axis
             fig = make_subplots(
                 rows=2, cols=1,
                 subplot_titles=('Response Time & Token Reduction', 'Success Rate'),
                 vertical_spacing=0.15
             )
-            
+
             # Response time and token reduction
             fig.add_trace(
                 go.Scatter(
@@ -619,7 +619,7 @@ class DashboardVisualizer:
                 ),
                 row=1, col=1
             )
-            
+
             fig.add_trace(
                 go.Scatter(
                     x=df['timestamp'],
@@ -630,7 +630,7 @@ class DashboardVisualizer:
                 ),
                 row=1, col=1
             )
-            
+
             # Success rate
             fig.add_trace(
                 go.Scatter(
@@ -642,39 +642,39 @@ class DashboardVisualizer:
                 ),
                 row=2, col=1
             )
-            
+
             fig.update_layout(
                 title="Performance Metrics Over Time",
                 height=600,
                 showlegend=True
             )
-            
+
             return fig.to_html(include_plotlyjs='cdn')
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create performance chart: {e}")
             return self._create_empty_chart("Error creating performance chart")
-    
+
     def create_variant_comparison_chart(self, variants: Dict[str, Dict[str, Any]]) -> str:
         """Create variant comparison chart."""
         try:
             if not variants:
                 return self._create_empty_chart("No variant data available")
-            
+
             variant_names = list(variants.keys())
             metrics = ['avg_response_time_ms', 'avg_token_reduction', 'success_rate']
-            
+
             fig = make_subplots(
                 rows=1, cols=3,
                 subplot_titles=('Response Time (ms)', 'Token Reduction (%)', 'Success Rate (%)'),
                 horizontal_spacing=0.1
             )
-            
+
             colors = ['blue', 'red', 'green', 'orange']
-            
+
             for i, metric in enumerate(metrics):
                 values = [variants[variant].get(metric, 0) for variant in variant_names]
-                
+
                 fig.add_trace(
                     go.Bar(
                         x=variant_names,
@@ -685,49 +685,49 @@ class DashboardVisualizer:
                     ),
                     row=1, col=i+1
                 )
-            
+
             fig.update_layout(
                 title="Variant Performance Comparison",
                 height=400
             )
-            
+
             return fig.to_html(include_plotlyjs='cdn')
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create variant comparison chart: {e}")
             return self._create_empty_chart("Error creating variant comparison chart")
-    
+
     def create_conversion_funnel(self, metrics: DashboardMetrics) -> str:
         """Create conversion funnel visualization."""
         try:
             # Create funnel data
             stages = ['Total Users', 'Active Users', 'Successful Queries', 'Target Conversions']
-            
+
             total_users = metrics.total_users
             active_users = metrics.active_users_24h
             successful_queries = int(total_users * metrics.success_rate / 100)
             target_conversions = int(successful_queries * metrics.conversion_rate / 100)
-            
+
             values = [total_users, active_users, successful_queries, target_conversions]
-            
+
             fig = go.Figure(go.Funnel(
                 y=stages,
                 x=values,
                 textinfo="value+percent initial",
                 marker=dict(color=["blue", "lightblue", "green", "lightgreen"])
             ))
-            
+
             fig.update_layout(
                 title="User Conversion Funnel",
                 height=400
             )
-            
+
             return fig.to_html(include_plotlyjs='cdn')
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create conversion funnel: {e}")
             return self._create_empty_chart("Error creating conversion funnel")
-    
+
     def create_statistical_significance_gauge(self, significance: float) -> str:
         """Create statistical significance gauge chart."""
         try:
@@ -752,15 +752,15 @@ class DashboardVisualizer:
                     }
                 }
             ))
-            
+
             fig.update_layout(height=300)
-            
+
             return fig.to_html(include_plotlyjs='cdn')
-            
+
         except Exception as e:
             self.logger.error(f"Failed to create significance gauge: {e}")
             return self._create_empty_chart("Error creating significance gauge")
-    
+
     def _create_empty_chart(self, message: str) -> str:
         """Create empty chart with message."""
         fig = go.Figure()
@@ -781,17 +781,17 @@ class DashboardVisualizer:
 
 class ABTestingDashboard(ObservabilityMixin):
     """Main A/B testing dashboard class."""
-    
+
     def __init__(self, experiment_manager: ExperimentManager):
         super().__init__()
         self.experiment_manager = experiment_manager
         self.metrics_collector = MetricsCollector(experiment_manager)
         self.visualizer = DashboardVisualizer()
         self.logger = logging.getLogger(__name__)
-        
+
         # Dashboard templates
         self.dashboard_template = self._load_dashboard_template()
-    
+
     async def generate_dashboard_html(self, experiment_id: str) -> str:
         """Generate complete HTML dashboard for an experiment."""
         try:
@@ -799,13 +799,13 @@ class ABTestingDashboard(ObservabilityMixin):
             metrics = await self.metrics_collector.collect_experiment_metrics(experiment_id)
             if not metrics:
                 return self._generate_error_dashboard("Experiment not found or no data available")
-            
+
             # Generate visualizations
             performance_chart = self.visualizer.create_performance_chart(metrics.performance_timeline)
             variant_comparison = self.visualizer.create_variant_comparison_chart(metrics.variants)
             conversion_funnel = self.visualizer.create_conversion_funnel(metrics)
             significance_gauge = self.visualizer.create_statistical_significance_gauge(metrics.statistical_significance)
-            
+
             # Prepare template data
             template_data = {
                 'experiment': metrics.to_dict(),
@@ -815,36 +815,36 @@ class ABTestingDashboard(ObservabilityMixin):
                 'significance_gauge': significance_gauge,
                 'last_updated': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
             }
-            
+
             # Render dashboard
             return self.dashboard_template.render(**template_data)
-            
+
         except Exception as e:
             self.logger.error(f"Failed to generate dashboard for experiment {experiment_id}: {e}")
             return self._generate_error_dashboard(f"Error generating dashboard: {str(e)}")
-    
+
     async def get_dashboard_data(self, experiment_id: str) -> Optional[Dict[str, Any]]:
         """Get dashboard data as JSON for API endpoints."""
         try:
             metrics = await self.metrics_collector.collect_experiment_metrics(experiment_id)
             return metrics.to_dict() if metrics else None
-            
+
         except Exception as e:
             self.logger.error(f"Failed to get dashboard data for experiment {experiment_id}: {e}")
             return None
-    
+
     async def get_experiment_summary(self) -> List[Dict[str, Any]]:
         """Get summary of all experiments for overview dashboard."""
         try:
             with self.experiment_manager.get_db_session() as db_session:
                 from ..core.ab_testing_framework import ExperimentModel
-                
+
                 experiments = db_session.query(ExperimentModel).all()
                 summaries = []
-                
+
                 for experiment in experiments:
                     metrics = await self.metrics_collector.collect_experiment_metrics(experiment.id)
-                    
+
                     summary = {
                         'id': experiment.id,
                         'name': experiment.name,
@@ -855,7 +855,7 @@ class ABTestingDashboard(ObservabilityMixin):
                         'current_percentage': experiment.current_percentage,
                         'target_percentage': experiment.target_percentage
                     }
-                    
+
                     if metrics:
                         summary.update({
                             'total_users': metrics.total_users,
@@ -865,15 +865,15 @@ class ABTestingDashboard(ObservabilityMixin):
                             'risk_level': metrics.risk_level,
                             'active_alerts': len(metrics.active_alerts)
                         })
-                    
+
                     summaries.append(summary)
-                
+
                 return summaries
-                
+
         except Exception as e:
             self.logger.error(f"Failed to get experiment summary: {e}")
             return []
-    
+
     def _load_dashboard_template(self) -> Template:
         """Load dashboard HTML template."""
         template_str = """
@@ -1093,7 +1093,7 @@ class ABTestingDashboard(ObservabilityMixin):
 </html>
         """
         return Template(template_str)
-    
+
     def _generate_error_dashboard(self, error_message: str) -> str:
         """Generate error dashboard HTML."""
         return f"""
@@ -1115,9 +1115,9 @@ _dashboard_instance: Optional[ABTestingDashboard] = None
 async def get_dashboard_instance() -> ABTestingDashboard:
     """Get or create the global dashboard instance."""
     global _dashboard_instance
-    
+
     if _dashboard_instance is None:
         experiment_manager = await get_experiment_manager()
         _dashboard_instance = ABTestingDashboard(experiment_manager)
-    
+
     return _dashboard_instance

@@ -12,7 +12,7 @@ This folder contains a complete, production-ready cookiecutter template for star
 
 ## 📁 Folder Structure
 
-```
+```text
 cookiecutter-python-template/
 ├── cookiecutter.json              # Main configuration (40+ options)
 ├── hooks/
@@ -71,6 +71,7 @@ cookiecutter-python-template/
    - **DO NOT** initialize with README
 
 2. **Copy this folder to the new repository**:
+
    ```bash
    # From your local machine
    cd /path/to/this/folder/cookiecutter-template
@@ -105,28 +106,33 @@ cookiecutter ~/my-templates/cookiecutter-template
 ### Enhanced Configuration Options (40+ total)
 
 **MCP Server Support** (from zen-mcp-server):
+
 - `include_mcp_server`: Add MCP protocol support
 - `mcp_transport`: stdio/http/sse options
 
 **API Integration** (from xero-practice-management):
+
 - `include_api_client`: API client factory pattern
 - `api_auth_type`: OAuth2/API key/JWT authentication
 - `include_retry_logic`: Exponential backoff retry
 - `include_rate_limiting`: Rate limiting support
 
 **Database/Ledger Patterns** (from ledgerbase):
+
 - `include_database`: SQLAlchemy with migrations
 - `include_repository_pattern`: Repository pattern
 - `include_unit_of_work`: Unit of Work pattern
 - `database_dialect`: PostgreSQL/MySQL/SQLite
 
 **Enhanced Security** (from pp-security-master):
+
 - `include_gitleaks`: Secrets detection
 - `include_compliance_docs`: Compliance templates
 - `include_threat_model`: Threat modeling
 - `include_fuzzing`: Fuzzing infrastructure
 
 **Financial Patterns** (from FISProject):
+
 - `include_financial_validators`: Financial validation
 - `include_audit_logging`: Audit trail
 - `use_decimal_precision`: Decimal for money
@@ -134,6 +140,7 @@ cookiecutter ~/my-templates/cookiecutter-template
 ### Template Files ({{cookiecutter.project_slug}}/)
 
 Complete project structure with:
+
 - ✅ **4 GitHub Actions workflows** (CI, security, docs, PyPI)
 - ✅ **UV + PEP 621** packaging (10-100x faster than pip/poetry)
 - ✅ **Hatchling** build backend
@@ -151,6 +158,7 @@ Complete project structure with:
 ## 📊 Template Coverage
 
 **Expected User Impact**:
+
 - **100% of users**: Enhanced security
 - **40-50% of users**: API integration patterns
 - **40-50% of users**: Database/ORM patterns
@@ -205,6 +213,7 @@ This template includes enhanced support for Claude Code with **user-level settin
 During project generation, you'll be prompted to set up user-level Claude Code settings. These settings enhance Claude Code's capabilities across **all your projects**:
 
 **What's Included:**
+
 - **Global CLAUDE.md**: Best practices, workflows, and development patterns
 - **Skills**: Reusable capabilities for common tasks
 - **Agents**: Specialized task handlers for security, testing, documentation, etc.
@@ -255,6 +264,7 @@ This template supports **Cruft** for keeping generated projects in sync with tem
 ### Using Cruft with This Template
 
 **Create a new project with Cruft:**
+
 ```bash
 # Install cruft
 pip install cruft
@@ -267,23 +277,27 @@ cruft create /path/to/cookiecutter-python-template
 ```
 
 **Check for template updates:**
+
 ```bash
 cd your-project
 cruft check
 ```
 
 **Update your project:**
+
 ```bash
 cruft update
 # Review changes, accept/reject updates
 ```
 
 **View differences:**
+
 ```bash
 cruft diff
 ```
 
 **Update template variables:**
+
 ```bash
 cruft update --variables
 ```
@@ -344,6 +358,7 @@ jobs:
 ## 🙏 Based On
 
 This template was created from patterns found in:
+
 1. **image-preprocessing-detector**: Base project structure
 2. **zen-mcp-server**: MCP protocol patterns
 3. **xero-practice-management**: API integration patterns
@@ -354,6 +369,7 @@ This template was created from patterns found in:
 ## 📞 Support
 
 For questions or issues:
+
 - Review the generated project's documentation (in each project's `docs/` folder)
 - Check the cookiecutter.json file for all available configuration options
 - Use QUICK_START.sh for interactive template setup
@@ -363,6 +379,7 @@ For questions or issues:
 ### Monitoring Utilities ({{ cookiecutter.repo_name }}/)
 
 Optional monitoring components available for advanced use cases:
+
 - **A/B Testing Dashboard**: Track and visualize A/B test results
 - **Metrics Collector**: Collect and aggregate system metrics
 - **Performance Dashboard**: Monitor application performance
