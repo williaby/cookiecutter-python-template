@@ -1,8 +1,9 @@
 {%- if cookiecutter.include_nox == "yes" %}
-"""Nox sessions for local testing and documentation workflows.
+"""Nox-UV sessions for local testing and documentation workflows.
 
-Nox is a command-line tool that automates testing in multiple Python environments.
-This file defines sessions for documentation validation, building, and serving.
+Nox-UV uses UV for fast virtual environment creation and package installation.
+This file defines sessions for documentation validation, building, and serving,
+as well as multi-Python version testing.
 
 Usage:
     nox -s fm          # Validate and autofix front matter
@@ -14,13 +15,19 @@ Usage:
     nox -s sbom        # Generate SBOM
     nox -s scan        # Scan SBOM for vulnerabilities
     nox -s compliance  # Run all compliance checks
+    nox -s test        # Run tests across multiple Python versions
 """
 
 import nox
+import nox_uv
 
-# Use the same Python version as the project
-nox.options.sessions = ["fm", "docs"]
+# Use nox-uv for faster environment creation
+nox_uv.register()
+
+# Default sessions and options
+nox.options.sessions = ["test", "lint", "docs"]
 nox.options.reuse_existing_virtualenvs = True
+nox.options.default_venv_backend = "uv"
 
 
 @nox.session(python="{{cookiecutter.python_version}}")
@@ -135,48 +142,62 @@ def reuse_spdx(session: nox.Session) -> None:
 
 @nox.session(python="{{cookiecutter.python_version}}")
 def sbom(session: nox.Session) -> None:
-    """Generate CycloneDX SBOM.
+    """Generate CycloneDX SBOM using UV.
 
     This session generates Software Bill of Materials (SBOM) in CycloneDX format
-    for runtime, development, and complete dependency sets.
+    for runtime and development dependency sets using UV's pip-compatible interface.
     """
     session.install("cyclonedx-bom==4.6.1")
 
     # Generate runtime SBOM (production dependencies only)
+    # Export production dependencies to requirements.txt format
+    session.run(
+        "uv",
+        "pip",
+        "compile",
+        "pyproject.toml",
+        "--output-file",
+        "requirements-runtime.txt",
+        "--no-dev",
+        external=True,
+    )
     session.run(
         "cyclonedx-py",
-        "poetry",
+        "requirements",
+        "requirements-runtime.txt",
         "--of",
         "json",
         "-o",
         "sbom-runtime.json",
-        "--no-dev",
     )
     session.log("Runtime SBOM generated: sbom-runtime.json")
 
-    # Generate development SBOM (dev dependencies only)
+    # Generate development SBOM (all dependencies including dev)
     session.run(
-        "cyclonedx-py",
-        "poetry",
-        "--of",
-        "json",
-        "-o",
-        "sbom-dev.json",
-        "--only",
-        "dev",
+        "uv",
+        "export",
+        "--format",
+        "requirements-txt",
+        "--output-file",
+        "requirements-all.txt",
+        "--no-hashes",
+        external=True,
     )
-    session.log("Development SBOM generated: sbom-dev.json")
-
-    # Generate complete SBOM (all dependencies)
     session.run(
         "cyclonedx-py",
-        "poetry",
+        "requirements",
+        "requirements-all.txt",
         "--of",
         "json",
         "-o",
         "sbom-complete.json",
     )
     session.log("Complete SBOM generated: sbom-complete.json")
+
+    # Clean up temporary files
+    import pathlib
+    pathlib.Path("requirements-runtime.txt").unlink(missing_ok=True)
+    pathlib.Path("requirements-all.txt").unlink(missing_ok=True)
 
 
 @nox.session(python="{{cookiecutter.python_version}}")
@@ -228,6 +249,52 @@ def compliance(session: nox.Session) -> None:
     scan(session)
 
     session.log("All compliance checks completed successfully!")
+
+
+@nox.session(python=["3.11", "3.12", "3.13"])
+def test(session: nox.Session) -> None:
+    """Run tests across multiple Python versions.
+
+    This session runs the full test suite with coverage reporting
+    across Python 3.11, 3.12, and 3.13 to ensure compatibility.
+    """
+    session.install("-e", ".[dev]")
+    session.run(
+        "pytest",
+        "-v",
+        "--cov=src",
+        "--cov-report=xml",
+        "--cov-report=term-missing:skip-covered",
+        "--cov-fail-under={{cookiecutter.code_coverage_target}}",
+        "tests/",
+    )
+
+
+@nox.session(python=["3.11", "3.12", "3.13"])
+def lint(session: nox.Session) -> None:
+    """Run linting across multiple Python versions.
+
+    This session runs Ruff linting to ensure code quality
+    across all supported Python versions.
+    """
+    session.install("-e", ".[dev]")
+    session.run("ruff", "check", ".", "--config=pyproject.toml")
+    session.run("ruff", "format", "--check")
+
+
+@nox.session(python=["3.11", "3.12", "3.13"])
+def typecheck(session: nox.Session) -> None:
+    """Run type checking across multiple Python versions.
+
+    This session runs MyPy type checking to ensure type safety
+    across all supported Python versions.
+    """
+    session.install("-e", ".[dev]")
+    {% if cookiecutter.use_mypy == "yes" %}
+    session.run("mypy", "src", "--config-file=pyproject.toml")
+    {% else %}
+    session.log("MyPy type checking is disabled in this project")
+    {% endif %}
 {%- else %}
 """Nox sessions - NOT CONFIGURED
 

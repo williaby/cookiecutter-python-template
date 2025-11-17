@@ -76,6 +76,7 @@ dev = [
     "safety>=3.7.0",
     {% if cookiecutter.include_nox == "yes" -%}
     "nox>=2025.10.16",
+    "nox-uv>=1.0.0",
     {% endif -%}
     "mutmut>=3.3.1",
 ]
