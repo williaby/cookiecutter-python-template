@@ -8,6 +8,7 @@
 # QUALITY CHECKS (This Workflow):
 #   - {% if cookiecutter.use_mypy == "yes" %}MyPy: Strict type checking{% endif %}
 #   - {% if cookiecutter.use_ruff == "yes" %}Ruff: Enhanced linting and formatting{% endif %}
+#   - Type Hints: Validates | union syntax has future annotations
 #   - Pytest: Comprehensive test suite with {{ cookiecutter.code_coverage_target }}%+ coverage
 #
 # SECURITY SCANS (See security-analysis.yml):
@@ -245,6 +246,11 @@ jobs:
         run: |
           echo "🔧 Running enhanced linting..."
           uv run ruff check . --config=pyproject.toml
+
+      - name: Type hint syntax validation
+        run: |
+          echo "🔍 Checking for | union syntax with future annotations..."
+          uv run python scripts/check_type_hints.py --src-dir=src
 {% endif %}
 
   # Success validation

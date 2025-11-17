@@ -17,7 +17,7 @@ Usage:
     nox -s compliance  # Run all compliance checks
     nox -s assuredoss  # Validate Google Assured OSS credentials
     nox -s test        # Run tests across multiple Python versions
-    nox -s lint        # Run Ruff linting across multiple Python versions
+    nox -s lint        # Run Ruff linting and type hint checks across multiple Python versions
     nox -s typecheck   # Run MyPy type checking across multiple Python versions
 """
 
@@ -295,12 +295,13 @@ def test(session: nox.Session) -> None:
 def lint(session: nox.Session) -> None:
     """Run linting across multiple Python versions.
 
-    This session runs Ruff linting to ensure code quality
+    This session runs Ruff linting and type hint checks to ensure code quality
     across all supported Python versions.
     """
     session.install("-e", ".[dev]")
     session.run("ruff", "check", ".", "--config=pyproject.toml")
     session.run("ruff", "format", "--check")
+    session.run("python", "scripts/check_type_hints.py", "--src-dir=src")
 
 
 @nox.session(python=["3.11", "3.12", "3.13"])
