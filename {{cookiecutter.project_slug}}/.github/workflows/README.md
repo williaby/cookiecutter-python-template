@@ -21,7 +21,7 @@ This directory contains four GitHub Actions workflow files that automate code qu
 
 **Jobs**:
 - **setup-optimized**: Dependencies installation with Poetry caching
-- **test**: Comprehensive pytest suite with coverage reporting (target: {{ cookiecutter.code_coverage_target }}%)
+- **test**: Comprehensive pytest suite with coverage reporting (target: {% raw %}{{ cookiecutter.code_coverage_target }}{% endraw %}%)
 - **quality-checks**:
   {% if cookiecutter.use_mypy == "yes" %}- MyPy strict type checking{% endif %}
   {% if cookiecutter.use_ruff == "yes" %}- Ruff code formatting and linting{% endif %}
@@ -38,7 +38,7 @@ This directory contains four GitHub Actions workflow files that automate code qu
 - Multi-version Python testing: `{% raw %}{{ cookiecutter.python_version }}{% endraw %}`
 - Poetry caching for faster builds
 - System dependency validation
-- Coverage reporting with `--cov-fail-under={{ cookiecutter.code_coverage_target }}`
+- Coverage reporting with `--cov-fail-under={% raw %}{{ cookiecutter.code_coverage_target }}{% endraw %}`
 - Disk cleanup to prevent runner overload
 - Step Security hardening with audit policy
 
@@ -105,7 +105,7 @@ This directory contains four GitHub Actions workflow files that automate code qu
 
 **Features**:
 - Front matter validation with optional autofix
-- Docstring coverage target: {{ cookiecutter.docstring_coverage_target }}%
+- Docstring coverage target: {% raw %}{{ cookiecutter.docstring_coverage_target }}{% endraw %}%
 - MkDocs strict build (catches missing pages, broken internal links)
 - Lychee link checker (accepts 200, 206, 429 status codes)
 - GitHub Pages deployment on pushes to main
@@ -263,7 +263,7 @@ All findings are available in GitHub Security tab.
 **CI Pipeline** (`ci.yml`):
 ```yaml
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-{% raw %}${{ github.ref }}{% endraw %}
   cancel-in-progress: true
 ```
 - Only one CI run per branch
@@ -273,7 +273,7 @@ concurrency:
 ### Caching Strategy
 
 **Poetry Dependencies**:
-- Cache key: `py-deps-{{ runner.os }}-{{ poetry.lock hash }}`
+- Cache key: `py-deps-{% raw %}{{ runner.os }}-{{ poetry.lock hash }}{% endraw %}`
 - Scope: `.venv` + `~/.cache/pypoetry`
 - Hit rate: ~95% for unchanged dependencies
 
@@ -312,13 +312,13 @@ Insert into the `quality-checks` job.
 
 **Coverage threshold** (in ci.yml):
 ```yaml
---cov-fail-under={{ cookiecutter.code_coverage_target }}
+--cov-fail-under={% raw %}{{ cookiecutter.code_coverage_target }}{% endraw %}
 ```
 Edit `cookiecutter.json` or the workflow directly.
 
 **Docstring coverage target** (in docs.yml):
 ```yaml
-# target: {{ cookiecutter.docstring_coverage_target }}%
+# target: {% raw %}{{ cookiecutter.docstring_coverage_target }}{% endraw %}%
 ```
 
 ### Disabling Workflows
