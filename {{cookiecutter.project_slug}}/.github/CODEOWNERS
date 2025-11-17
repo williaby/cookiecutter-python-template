@@ -1,0 +1,38 @@
+# CODEOWNERS for {{cookiecutter.project_name}}
+# This file defines code ownership for automated review assignment
+# and branch protection enforcement.
+#
+# Format: path/pattern @github-username or @organization/team
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for all files
+*                          @{{cookiecutter.github_username}}
+
+# Documentation
+/docs/**                   @{{cookiecutter.github_username}}
+*.md                       @{{cookiecutter.github_username}}
+
+# GitHub workflows and configuration
+/.github/workflows/**      @{{cookiecutter.github_username}}
+/.github/**                @{{cookiecutter.github_username}}
+
+# Source code
+/src/**                    @{{cookiecutter.github_username}}
+
+# Tests
+/tests/**                  @{{cookiecutter.github_username}}
+
+# Configuration files
+pyproject.toml             @{{cookiecutter.github_username}}
+poetry.lock                @{{cookiecutter.github_username}}
+.pre-commit-config.yaml    @{{cookiecutter.github_username}}
+mkdocs.yml                 @{{cookiecutter.github_username}}
+
+# Security and compliance
+SECURITY.md                @{{cookiecutter.github_username}}
+LICENSE                    @{{cookiecutter.github_username}}
+
+# CI/CD and tooling
+/scripts/**                @{{cookiecutter.github_username}}
+/tools/**                  @{{cookiecutter.github_username}}
+noxfile.py                 @{{cookiecutter.github_username}}

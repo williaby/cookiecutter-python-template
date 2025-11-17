@@ -1,8 +1,96 @@
 {
   "project_name": "My Python Project",
-  "repo_name": "{{ cookiecutter.project_name.lower().replace(' ', '_') }}",
+  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+  "project_short_description": "A short description of the project",
   "author_name": "Your Name",
-  "author_email": "your@email.com",
-  "python_version": "3.11",
-  "description": "A new Python project."
+  "author_email": "you@example.com",
+  "github_username": "yourusername",
+  "github_org_or_user": "{{ cookiecutter.github_username }}",
+  "version": "0.1.0",
+
+  "_copy_without_render": [
+    "*.html",
+    "*.css",
+    "*.js"
+  ],
+
+  "python_version": ["3.12", "3.11", "3.13"],
+  "python_version_short": "{% if cookiecutter.python_version == '3.11' %}311{% elif cookiecutter.python_version == '3.12' %}312{% else %}313{% endif %}",
+
+  "license": [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "GPL-3.0",
+    "LGPL-3.0",
+    "MPL-2.0"
+  ],
+
+  "include_cli": ["yes", "no"],
+  "cli_tool_name": "{{ cookiecutter.project_slug }}",
+
+  "include_ml_dependencies": ["no", "yes"],
+  "include_api_framework": ["no", "yes"],
+
+  "_comment_mcp": "MCP Server Support (from zen-mcp-server analysis)",
+  "include_mcp_server": ["no", "yes"],
+  "mcp_transport": ["stdio", "http", "sse"],
+
+  "_comment_api": "API Integration Patterns (from xero-practice-management & FIS analysis)",
+  "include_api_client": ["no", "yes"],
+  "api_auth_type": ["none", "oauth2", "api_key", "jwt"],
+  "include_retry_logic": ["yes", "no"],
+  "include_rate_limiting": ["yes", "no"],
+
+  "_comment_database": "Database/Ledger Patterns (from ledgerbase analysis)",
+  "include_database": ["none", "sqlalchemy", "sqlalchemy_migrations", "sqlalchemy_ledger"],
+  "database_dialect": ["postgresql", "mysql", "sqlite"],
+  "include_repository_pattern": ["no", "yes"],
+  "include_unit_of_work": ["no", "yes"],
+
+  "_comment_financial": "Financial System Patterns (from FIS analysis)",
+  "include_financial_validators": ["no", "yes"],
+  "include_audit_logging": ["no", "yes"],
+  "use_decimal_precision": ["no", "yes"],
+
+  "_comment_docs": "Documentation Configuration",
+  "use_mkdocs": ["yes", "no"],
+  "use_sphinx": ["no", "yes"],
+
+  "_comment_coverage": "Quality Thresholds",
+  "code_coverage_target": "80",
+  "docstring_coverage_target": "85",
+
+  "_comment_tools": "Development Tools",
+  "use_pre_commit": ["yes", "no"],
+  "use_ruff": ["yes", "no"],
+  "use_mypy": ["yes", "no"],
+
+  "_comment_cicd": "CI/CD Configuration",
+  "include_github_actions": ["yes", "no"],
+  "include_security_scanning": ["yes", "no"],
+  "include_gitleaks": ["yes", "no"],
+  "include_fuzzing": ["no", "yes"],
+  "include_codecov": ["yes", "no"],
+  "include_renovate": ["yes", "no"],
+
+  "_comment_security": "Enhanced Security (from pp-security-master analysis)",
+  "include_compliance_docs": ["yes", "no"],
+  "include_threat_model": ["no", "yes"],
+  "security_email": "security@example.com",
+
+  "_comment_dev": "Development Environment",
+  "include_nox": ["yes", "no"],
+  "include_docker": ["no", "yes"],
+
+  "_comment_community": "Community Files",
+  "use_reuse_licensing": ["yes", "no"],
+  "include_code_of_conduct": ["yes", "no"],
+  "include_contributing_guide": ["yes", "no"],
+  "include_security_policy": ["yes", "no"],
+
+  "_comment_urls": "Project URLs",
+  "repo_url": "https://github.com/{{ cookiecutter.github_org_or_user }}/{{ cookiecutter.project_slug }}",
+  "docs_url": "https://{{ cookiecutter.project_slug }}.readthedocs.io",
+  "pypi_package_name": "{{ cookiecutter.project_slug.replace('_', '-') }}"
 }

@@ -1,0 +1,50 @@
+# OSV-Scanner Vulnerability Exceptions
+# OpenSSF Scorecard uses OSV-Scanner to detect vulnerabilities
+# This file documents false positives and vulnerabilities that don't affect this project
+#
+# Reference: https://google.github.io/osv-scanner/configuration/
+# Format: [[IgnoredVulns]] with id and reason fields
+#
+# When to add exceptions:
+# 1. Withdrawn vulnerabilities that are no longer valid
+# 2. Vulnerabilities in old versions (current version is much newer and fixed)
+# 3. Vulnerabilities that don't affect this project's codebase
+# 4. False positives from vulnerability scanning tools
+#
+# IMPORTANT: Only add exceptions after careful analysis. Never ignore real vulnerabilities.
+# Each exception MUST include:
+# - id: CVE or advisory ID
+# - reason: Detailed explanation of why this is safe to ignore
+
+# ============================================================================
+# Example: Withdrawn Vulnerability
+# ============================================================================
+# Uncomment and customize for your project:
+#
+# [[IgnoredVulns]]
+# id = "CVE-XXXX-XXXXX"
+# reason = "This CVE was withdrawn on YYYY-MM-DD due to [reason]. Not applicable to this project."
+
+# ============================================================================
+# Example: Fixed in Current Version
+# ============================================================================
+# Uncomment and customize for your project:
+#
+# [[IgnoredVulns]]
+# id = "PYSEC-YYYY-NNN"
+# reason = "Fixed in package-name >= X.Y.Z (released YYYY-MM-DD). Current version: X.Y.Z. Vulnerability does not apply."
+
+# ============================================================================
+# Example: Not Used in Project
+# ============================================================================
+# Uncomment and customize for your project:
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# reason = "Vulnerability affects [specific feature] which is not used in this project. Safe to ignore."
+
+# ============================================================================
+# Project-Specific Exceptions
+# ============================================================================
+# Add your project's vulnerability exceptions below this line
+

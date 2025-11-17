@@ -1,0 +1,118 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+{% if cookiecutter.use_pre_commit == "yes" %}
+ci:
+  autoupdate_schedule: monthly
+  autofix_prs: true
+  skip: [validate-front-matter]  # Skip local-only hooks
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: ['--maxkb=10000']  # 10MB limit
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+{% if cookiecutter.include_gitleaks == "yes" %}
+  # Secrets detection with Gitleaks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+{% endif %}
+{% if cookiecutter.use_ruff == "yes" %}
+  # Python linting and formatting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.4
+    hooks:
+      - id: ruff
+        args: ['--fix', '--exit-non-zero-on-fix']
+      - id: ruff-format
+{% endif %}
+{% if cookiecutter.use_mypy == "yes" %}
+  # Python type checking with MyPy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.0.0
+        args: ['--ignore-missing-imports', '--python-version={{ cookiecutter.python_version }}']
+        exclude: ^tests/.*
+{% endif %}
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix', '--disable', 'MD013', 'MD033', 'MD041']
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: default, rules: {line-length: {max: 120}}}']
+{% if cookiecutter.use_mkdocs == "yes" %}
+  # Documentation front matter validation
+  - repo: local
+    hooks:
+      - id: validate-front-matter
+        name: Validate documentation front matter
+        entry: poetry run python tools/validate_front_matter.py docs
+        language: system
+        files: ^docs/.*\.md$
+        pass_filenames: false
+{% endif %}
+  # Python docstring coverage with interrogate
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        args: ['-v', '-c', 'pyproject.toml', 'src/']
+        pass_filenames: false
+{% if cookiecutter.include_security_scanning == "yes" %}
+  # Security scanning with Bandit
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-c', 'pyproject.toml']
+        additional_dependencies: ['bandit[toml]']
+        exclude: 'tests/.*'
+
+  # Dependency scanning with Safety
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.3
+    hooks:
+      - id: python-safety-dependencies-check
+        files: pyproject.toml
+{% endif %}
+# Exclude patterns
+exclude: |
+  (?x)^(
+      \.git/|
+      \.venv/|
+      venv/|
+      build/|
+      dist/|
+      .*\.egg-info/|
+      __pycache__/|
+      \.mypy_cache/|
+      \.pytest_cache/|
+      \.ruff_cache/|
+      data/|
+      models/|
+      .*\.pyc
+  )$
+{% endif %}

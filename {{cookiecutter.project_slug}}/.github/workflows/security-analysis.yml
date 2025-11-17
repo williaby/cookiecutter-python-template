@@ -1,0 +1,392 @@
+# {% raw %}{{ cookiecutter.project_name }}{% endraw %} - Security Analysis Workflow
+# Comprehensive security scanning with CodeQL, Bandit, Safety, and OSV-Scanner
+#
+# WORKFLOW SCANS (Centralized Here):
+#   - CodeQL: Python security-extended and quality queries
+#   - Dependency Review: PR-based dependency vulnerability detection
+#   - Bandit: Python static security analysis
+#   - Safety: Python dependency CVE scanning
+#   - OSV-Scanner: Multi-ecosystem vulnerability detection
+#
+# EXTERNAL GITHUB APPS (Complementary - No Duplication):
+#   - Semgrep Cloud Platform: Advanced SAST with better UI/tracking
+#   - GitGuardian: Secrets detection in commits
+#   - OpenSSF Scorecard: Supply chain security assessment
+#
+# This consolidation saves ~10-12 minutes per PR
+
+name: Security Analysis
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  schedule:
+    - cron: '30 2 * * 1'  # Weekly Monday 2:30 AM UTC
+  workflow_dispatch:  # Manual trigger
+
+permissions: read-all
+
+env:
+  POETRY_VERSION: 2.1.2
+
+jobs:
+  # Detect if security-relevant files changed in this PR
+  detect-changes:
+    name: Detect Security-Relevant Changes
+    runs-on: ubuntu-latest
+    outputs:
+      security_files: ${{ steps.filter.outputs.security }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check for security-relevant file changes
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            security:
+              - '**/*.py'
+              - '.github/workflows/security-analysis.yml'
+              - 'pyproject.toml'
+              - 'poetry.lock'
+
+{% if cookiecutter.include_security_scanning == "yes" %}
+  # CodeQL Analysis
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write  # Required for SARIF upload
+      actions: read
+    steps:
+      - name: Harden the runner (Audit outbound calls)
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+        with:
+          python-version: '{% raw %}{{ cookiecutter.python_version }}{% endraw %}'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a # v1.4.1
+        with:
+          version: ${{ env.POETRY_VERSION }}
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Install dependencies
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry install --only main --no-interaction
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@48ab28a6f5dbc2a99bf1e0131198dd8f1df78169 # v3.27.5
+        with:
+          languages: python
+          queries: security-extended,security-and-quality
+          config: |
+            paths:
+              - src
+            paths-ignore:
+              - tests
+              - validation
+              - scripts
+            queries:
+              - uses: security-extended
+              - uses: security-and-quality
+
+      - name: Build CodeQL Database
+        uses: github/codeql-action/autobuild@48ab28a6f5dbc2a99bf1e0131198dd8f1df78169 # v3.27.5
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@48ab28a6f5dbc2a99bf1e0131198dd8f1df78169 # v3.27.5
+        with:
+          category: "/language:python"
+          upload: true
+
+  # Dependency vulnerability scanning
+  dependency-security:
+    name: Dependency Security Review
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.detect-changes.outputs.security_files == 'true'
+    permissions:
+      contents: read
+      pull-requests: write  # Required for PR comments
+    steps:
+      - name: Harden the runner (Audit outbound calls)
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@4081bf99e2866ebe428fc0477b69eb4fcda7220a # v4.5.0
+        with:
+          fail-on-severity: moderate
+          license-check: true
+          comment-summary-in-pr: always
+          deny-licenses: GPL-2.0, GPL-3.0
+
+  # Multi-tool security scanning
+  security-scanning:
+    name: Multi-Tool Security Scan
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.security_files == 'true'
+    timeout-minutes: 15
+    steps:
+      - name: Harden the runner (Audit outbound calls)
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+        with:
+          python-version: '{% raw %}{{ cookiecutter.python_version }}{% endraw %}'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a # v1.4.1
+        with:
+          version: ${{ env.POETRY_VERSION }}
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Install Dependencies
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry install --with dev --no-interaction
+
+      # Bandit static analysis
+      - name: Bandit Security Analysis
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "🔒 Running Bandit security analysis..."
+          poetry run bandit -r src \
+            -f json -o bandit-report.json \
+            -c pyproject.toml || true
+          poetry run bandit -r src -c pyproject.toml || true
+
+      # Safety dependency vulnerability scanning
+      - name: Safety Vulnerability Scan
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "🛡️ Scanning for known vulnerabilities..."
+          poetry self add poetry-plugin-export==1.8.0
+          poetry export -f requirements.txt --output requirements-scan.txt
+          poetry run safety check \
+            --file requirements-scan.txt \
+            --json --output safety-report.json || true
+          poetry run safety check --file requirements-scan.txt || true
+
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: security-scan-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+            requirements-scan.txt
+
+  # OSV-Scanner vulnerability detection
+  osv-scanner:
+    name: OSV Vulnerability Scanner
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.security_files == 'true'
+    steps:
+      - name: Harden the runner (Audit outbound calls)
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run OSV Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@9bb69575e74019c2ad085a1860787043adf47ccb # v2.2.4
+        with:
+          scan-args: |-
+            --lockfile=poetry.lock
+            --format=json
+            --output=osv-results.json
+
+      - name: Check OSV Results for HIGH/CRITICAL
+        run: |
+          echo "🔍 Analyzing OSV scan results..."
+          if [ ! -f osv-results.json ]; then
+            echo "❌ ERROR: OSV results file not found"
+            exit 1
+          fi
+          if [ ! -s osv-results.json ]; then
+            echo "❌ ERROR: OSV results file is empty"
+            exit 1
+          fi
+
+          python3 << 'EOF'
+          import json
+          import sys
+
+          def extract_severity(vuln):
+              severity = vuln.get('severity')
+              if severity:
+                  severity_str = severity if isinstance(severity, str) else str(severity)
+                  return 'MEDIUM' if severity_str.upper() == 'MODERATE' else severity_str.upper()
+              db_specific = vuln.get('database_specific', {})
+              if isinstance(db_specific, dict):
+                  severity = db_specific.get('severity')
+                  if severity:
+                      severity_str = severity if isinstance(severity, str) else str(severity)
+                      return 'MEDIUM' if severity_str.upper() == 'MODERATE' else severity_str.upper()
+              severities = vuln.get('severities', [])
+              if isinstance(severities, list) and severities:
+                  severity_levels = {'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'MODERATE': 2, 'LOW': 1, 'UNKNOWN': 0}
+                  max_severity = 'UNKNOWN'
+                  max_level = 0
+                  for sev_entry in severities:
+                      if isinstance(sev_entry, dict):
+                          sev = sev_entry.get('severity', '').upper()
+                      else:
+                          sev = str(sev_entry).upper()
+                      level = severity_levels.get(sev, 0)
+                      if level > max_level:
+                          max_level = level
+                          max_severity = sev
+                  return 'MEDIUM' if max_severity == 'MODERATE' else max_severity
+              return 'UNKNOWN'
+
+          try:
+              with open('osv-results.json', 'r') as f:
+                  results = json.load(f)
+              if not isinstance(results, dict):
+                  print(f'❌ ERROR: Expected dict, got {type(results).__name__}')
+                  sys.exit(1)
+
+              vulnerabilities = results.get('results', [])
+              print(f'📋 Found {len(vulnerabilities)} vulnerability groups')
+
+              if not vulnerabilities:
+                  print('✅ No vulnerabilities found')
+                  sys.exit(0)
+
+              high_crit = []
+              medium = []
+              low = []
+              for idx, vuln_group in enumerate(vulnerabilities):
+                  if not isinstance(vuln_group, dict):
+                      continue
+                  packages = vuln_group.get('packages', [])
+                  for pkg in packages:
+                      if not isinstance(pkg, dict):
+                          continue
+                      for vuln in pkg.get('vulnerabilities', []):
+                          if not isinstance(vuln, dict):
+                              continue
+                          severity = extract_severity(vuln)
+                          vuln_id = vuln.get('id', 'UNKNOWN')
+                          if severity in ['HIGH', 'CRITICAL']:
+                              high_crit.append(f"{vuln_id} ({severity})")
+                          elif severity == 'MEDIUM':
+                              medium.append(f"{vuln_id} ({severity})")
+                          else:
+                              low.append(f"{vuln_id} ({severity})")
+
+              total = len(high_crit) + len(medium) + len(low)
+              print(f'\n📊 OSV Results: {total} total vulnerabilities')
+              if high_crit:
+                  print(f'❌ HIGH/CRITICAL: {len(high_crit)} vulnerabilities')
+                  for v in high_crit[:5]:
+                      print(f'   - {v}')
+                  print('\n❌ Build FAILED: HIGH/CRITICAL vulnerabilities must be fixed')
+                  sys.exit(1)
+              if medium:
+                  print(f'⚠️  MEDIUM: {len(medium)} vulnerabilities')
+              if low:
+                  print(f'ℹ️  LOW: {len(low)} vulnerabilities')
+              print('\n✅ No HIGH/CRITICAL vulnerabilities found')
+          except json.JSONDecodeError as e:
+              print(f'❌ ERROR: Invalid JSON: {e}')
+              sys.exit(1)
+          except Exception as e:
+              print(f'❌ ERROR: {e}')
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
+          EOF
+
+      - name: Upload OSV Scanner Report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: osv-scanner-results
+          path: osv-results.json
+          if-no-files-found: warn
+
+  # Security gate validation
+  security-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+    needs:
+      - detect-changes
+      - codeql-analysis
+      - dependency-security
+      - security-scanning
+      - osv-scanner
+    if: always()
+    steps:
+      - name: Validate Security Results
+        run: |
+          echo "🔒 Security Analysis Results:"
+          echo "CodeQL: ${{ needs.codeql-analysis.result }}"
+          echo "Dependency Security: ${{ needs.dependency-security.result }}"
+          echo "Security Scanning: ${{ needs.security-scanning.result }}"
+          echo "OSV Scanner: ${{ needs.osv-scanner.result }}"
+
+          is_acceptable() {
+            [[ "$1" == "success" || "$1" == "skipped" ]]
+          }
+
+          if is_acceptable "${{ needs.codeql-analysis.result }}" && \
+             is_acceptable "${{ needs.dependency-security.result }}" && \
+             is_acceptable "${{ needs.security-scanning.result }}" && \
+             is_acceptable "${{ needs.osv-scanner.result }}"; then
+            echo "✅ Security gate passed"
+            echo "🔐 Security standards met"
+          else
+            echo "❌ Security gate failed"
+            exit 1
+          fi
+
+{% else %}
+  # Minimal security gate when security scanning is disabled
+  security-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Configuration
+        run: |
+          echo "ℹ️  Security scanning is disabled for this project"
+          echo "To enable security scanning, set include_security_scanning to 'yes'"
+{% endif %}
