@@ -29,7 +29,9 @@ on:
       - "tools/**"
       - "src/**"
 
-permissions: read-all
+permissions:
+  contents: read        # For checkout
+  pull-requests: write  # For PR comments
 
 jobs:
   validate:

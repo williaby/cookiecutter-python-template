@@ -1,0 +1,213 @@
+# {% raw %}{{ cookiecutter.project_name }}{% endraw %} - Signed Release Pipeline
+# Cryptographically sign releases and generate SLSA provenance
+#
+# This workflow:
+#   - Builds distribution packages
+#   - Signs artifacts with Sigstore/Cosign
+#   - Generates SLSA provenance attestations
+#   - Creates GitHub release with signed artifacts
+#
+# Triggered on:
+#   - Git tags matching v* (e.g., v1.0.0, v2.1.3)
+#
+# Security:
+#   - Keyless signing via Sigstore
+#   - SLSA Level 3 provenance
+#   - Signature verification instructions included
+
+name: Release & Sign
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write      # For creating releases
+  id-token: write      # For Sigstore signing
+  attestations: write  # For SLSA provenance
+
+jobs:
+  build:
+    name: Build Distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0  # Full history for version detection
+
+      - name: Set up Python
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+        with:
+          python-version: '{% raw %}{{ cookiecutter.python_version }}{% endraw %}'
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build distribution packages
+        run: |
+          uv build
+          echo "📦 Built packages:"
+          ls -lh dist/
+
+      - name: Generate hashes
+        id: hash
+        working-directory: dist
+        run: |
+          echo "hashes=$(sha256sum * | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 5
+
+  provenance:
+    name: Generate SLSA Provenance
+    needs: [build]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+      attestations: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true
+
+  sign-and-release:
+    name: Sign & Create Release
+    needs: [build, provenance]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Download artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Download provenance
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: ${{ needs.provenance.outputs.provenance-name }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign artifacts with Cosign
+        env:
+          COSIGN_YES: "true"
+        run: |
+          echo "🔐 Signing artifacts with Sigstore/Cosign..."
+          cd dist
+          for file in *; do
+            echo "  Signing: $file"
+            cosign sign-blob --yes "$file" \
+              --output-signature "${file}.sig" \
+              --output-certificate "${file}.pem"
+          done
+          echo "✅ All artifacts signed"
+
+      - name: Create release notes
+        id: notes
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## Release ${{ github.ref_name }}
+
+          ### 📦 Installation
+
+          ```bash
+          pip install {{cookiecutter.pypi_package_name}}==${{ github.ref_name }}
+          ```
+
+          ### 🔐 Verification
+
+          All release artifacts are cryptographically signed with [Sigstore](https://www.sigstore.dev/).
+
+          **Verify signatures:**
+
+          ```bash
+          # Install cosign
+          brew install cosign  # macOS
+          # or download from https://github.com/sigstore/cosign/releases
+
+          # Verify wheel
+          cosign verify-blob \
+            --certificate {{cookiecutter.pypi_package_name}}-*.whl.pem \
+            --signature {{cookiecutter.pypi_package_name}}-*.whl.sig \
+            --certificate-identity-regexp="https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            {{cookiecutter.pypi_package_name}}-*.whl
+          ```
+
+          ### 🔗 SLSA Provenance
+
+          This release includes [SLSA Level 3](https://slsa.dev/) provenance attestations, providing:
+          - Build environment details
+          - Source repository information
+          - Complete build reproducibility metadata
+
+          Provenance file: `${{ needs.provenance.outputs.provenance-name }}`
+
+          ### 📋 Changes
+
+          See [CHANGELOG.md](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/blob/main/CHANGELOG.md) for full details.
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+            ${{ needs.provenance.outputs.provenance-name }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          generate_release_notes: true
+
+      - name: Release Summary
+        run: |
+          echo "## 🎉 Release ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cd dist
+          for file in *.whl *.tar.gz; do
+            echo "- 📦 \`$file\`" >> $GITHUB_STEP_SUMMARY
+            echo "  - Signature: \`${file}.sig\`" >> $GITHUB_STEP_SUMMARY
+            echo "  - Certificate: \`${file}.pem\`" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Security" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔐 Signed with Sigstore/Cosign" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 SLSA Level 3 Provenance" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Keyless signing (certificate transparency)" >> $GITHUB_STEP_SUMMARY
