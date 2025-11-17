@@ -43,15 +43,7 @@ def cli(ctx: click.Context, debug: bool) -> None:
 )
 @click.pass_context
 def hello(ctx: click.Context, name: str) -> None:
-    """
-    Example command that demonstrates CLI best practices.
-
-    This command shows:
-    - Option handling with Click
-    - Structured logging integration
-    - Error handling patterns
-    - Context passing between commands
-    """
+    """Greet the user with a personalized message."""
     try:
         debug = ctx.obj.get("debug", False) if ctx.obj else False
 
