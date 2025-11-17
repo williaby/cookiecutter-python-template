@@ -15,11 +15,7 @@ Thank you for your interest in contributing to {{cookiecutter.project_name}}! Th
 
 ## Code of Conduct
 
-{%- if cookiecutter.include_code_of_conduct == "yes" %}
-This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to {{cookiecutter.author_email}}.
-{%- else %}
-We are committed to providing a welcoming and inspiring community for all. Please report unacceptable behavior to {{cookiecutter.author_email}}.
-{%- endif %}
+This project adheres to the [williaby organization Code of Conduct](https://github.com/williaby/.github/blob/main/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to {{cookiecutter.author_email}}.
 
 ## Getting Started
 
@@ -425,9 +421,7 @@ Use the feature request template and include:
 
 - **General Questions**: Open a [GitHub Discussion]({{cookiecutter.repo_url}}/discussions)
 - **Bug Reports**: Open a [GitHub Issue]({{cookiecutter.repo_url}}/issues)
-{%- if cookiecutter.include_security_policy == "yes" %}
-- **Security Issues**: See [SECURITY.md](SECURITY.md)
-{%- endif %}
+- **Security Issues**: See [williaby Security Policy](https://github.com/williaby/.github/blob/main/SECURITY.md)
 - **Email**: {{cookiecutter.author_email}}
 
 ## Recognition

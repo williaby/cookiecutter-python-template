@@ -100,12 +100,21 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.*.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Google Cloud / Assured OSS Credentials
+**/service-account*.json
+**/gcp-credentials*.json
+**/*-key.json
+.gcloud/
+.config/gcloud/
 
 # Spyder project settings
 .spyderproject

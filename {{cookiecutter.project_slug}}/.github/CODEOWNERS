@@ -24,12 +24,11 @@
 
 # Configuration files
 pyproject.toml             @{{cookiecutter.github_username}}
-poetry.lock                @{{cookiecutter.github_username}}
+uv.lock                    @{{cookiecutter.github_username}}
 .pre-commit-config.yaml    @{{cookiecutter.github_username}}
 mkdocs.yml                 @{{cookiecutter.github_username}}
 
 # Security and compliance
-SECURITY.md                @{{cookiecutter.github_username}}
 LICENSE                    @{{cookiecutter.github_username}}
 
 # CI/CD and tooling

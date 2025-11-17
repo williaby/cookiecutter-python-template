@@ -15,9 +15,7 @@
 [![CI Pipeline](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/ci.yml)
 [![Security Analysis](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/security-analysis.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/security-analysis.yml)
 {%- endif %}
-{%- if cookiecutter.include_code_of_conduct == "yes" %}
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
-{%- endif %}
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/williaby/.github/blob/main/CODE_OF_CONDUCT.md)
 
 {%- endif %}
 
@@ -104,6 +102,86 @@ uv run {{cookiecutter.cli_tool_name}} process input.txt --output result.json
 ```
 
 {%- endif %}
+
+## Google Assured OSS Integration
+
+This project uses **Google Assured OSS** as the primary package source, with PyPI as a fallback. Assured OSS provides vetted, secure open-source packages with Google's security guarantees.
+
+### Why Assured OSS?
+
+- **Security**: All packages are scanned and verified by Google
+- **Supply Chain Protection**: Reduced risk of malicious packages
+- **Compliance**: Meets enterprise security requirements
+- **Automatic Fallback**: Seamlessly falls back to PyPI when needed
+
+### Setup Instructions
+
+1. **Copy the environment template**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configure Google Cloud Project**:
+   ```bash
+   # Edit .env and set your GCP project ID
+   GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+   ```
+
+3. **Setup Authentication** (choose one method):
+
+   **Option A: Service Account JSON File** (local development)
+   ```bash
+   # Download service account key from GCP Console
+   # Set the file path in .env
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+   ```
+
+   **Option B: Base64 Encoded Credentials** (CI/CD recommended)
+   ```bash
+   # Encode your service account JSON
+   base64 -w 0 service-account-key.json
+
+   # Set the base64 string in .env
+   GOOGLE_APPLICATION_CREDENTIALS_B64=<paste-base64-here>
+   ```
+
+4. **Validate Configuration**:
+   ```bash
+   # Run the validation script
+   uv run python scripts/validate_assuredoss.py
+
+   # Or use nox
+   nox -s assuredoss
+   ```
+
+### Service Account Permissions
+
+Your service account needs the following IAM role:
+- `roles/artifactregistry.reader` (Artifact Registry Reader)
+
+### Disabling Assured OSS
+
+To use only PyPI (not recommended for production):
+
+```bash
+# In .env file
+USE_ASSURED_OSS=false
+```
+
+### Troubleshooting
+
+**Q: Packages not found in Assured OSS?**
+- UV automatically falls back to PyPI for packages not in Assured OSS
+- No action needed - this is expected behavior
+
+**Q: Authentication errors?**
+- Verify your service account has Artifact Registry Reader role
+- Check that GOOGLE_CLOUD_PROJECT is set correctly
+- Ensure credentials file/base64 is valid JSON
+
+**Q: How to see which packages are available?**
+- Run `nox -s assuredoss` to list all available packages
+- Visit: https://cloud.google.com/assured-open-source-software/docs/supported-packages
 
 ## Development
 
@@ -246,9 +324,7 @@ uv run pytest --cov={{cookiecutter.project_slug}} --cov-fail-under={{cookiecutte
 
 Please report security vulnerabilities to {{cookiecutter.author_email}} rather than using the public issue tracker.
 
-{%- if cookiecutter.include_security_policy == "yes" %}
-See [SECURITY.md](SECURITY.md) for complete disclosure policy.
-{%- endif %}
+See the [williaby Security Policy](https://github.com/williaby/.github/blob/main/SECURITY.md) for complete disclosure policy and response timelines.
 
 ## Contributing
 

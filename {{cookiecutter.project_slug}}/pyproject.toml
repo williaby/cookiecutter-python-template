@@ -76,8 +76,15 @@ dev = [
     "safety>=3.7.0",
     {% if cookiecutter.include_nox == "yes" -%}
     "nox>=2025.10.16",
+    "nox-uv>=1.0.0",
     {% endif -%}
     "mutmut>=3.3.1",
+
+    # Google Cloud Assured OSS
+    "google-auth>=2.0.0",
+    "google-cloud-assured-oss>=0.1.0",
+    "google-api-core>=2.0.0",
+    "python-dotenv>=1.0.0",  # For loading .env files
 ]
 {% if cookiecutter.include_ml_dependencies == "yes" %}
 # Machine Learning dependencies
@@ -331,3 +338,19 @@ tests = [
 # UV Configuration
 [tool.uv]
 dev-dependencies = []  # Managed via [project.optional-dependencies]
+
+# Package Index Configuration
+# Google Assured OSS as primary source with PyPI fallback
+# See .env.example for required Google Cloud credentials and configuration
+#
+# Indexes are configured at runtime via environment variables:
+# - GOOGLE_CLOUD_PROJECT: Your GCP project ID
+# - ASSURED_OSS_REGION: Region (us, europe, asia)
+# - ASSURED_OSS_REPOSITORY: Repository name (default: assuredoss)
+# - USE_ASSURED_OSS: Enable/disable Assured OSS (true/false)
+#
+# Index URL format:
+# https://{ASSURED_OSS_REGION}-python.pkg.dev/{GOOGLE_CLOUD_PROJECT}/{ASSURED_OSS_REPOSITORY}/simple/
+#
+# UV automatically falls back to PyPI when packages are not found in Assured OSS.
+# Authentication uses GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS_B64.

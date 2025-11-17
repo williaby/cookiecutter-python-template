@@ -86,7 +86,7 @@ All configuration files have been created in `/home/user/cookiecutter-python-tem
   - Strict mode disabled for repo root file links
 
 ### 6. **noxfile.py** - Automation Sessions (Conditional)
-- **Purpose**: Define Nox automation sessions for testing, documentation, and compliance
+- **Purpose**: Define Nox-UV automation sessions for testing, documentation, and compliance
 - **Condition**: Only generated if `{{cookiecutter.include_nox}} == "yes"`
 - **Cookiecutter Variables**:
   - `{{cookiecutter.python_version}}` - Python version for all sessions
@@ -98,10 +98,16 @@ All configuration files have been created in `/home/user/cookiecutter-python-tem
   - **validate**: Run all validation checks (front matter, docstrings, docs build)
   - **reuse**: Check REUSE compliance (Docker-based)
   - **reuse_spdx**: Generate REUSE SPDX document (Docker-based)
-  - **sbom**: Generate CycloneDX SBOM (runtime, dev, complete)
+  - **sbom**: Generate CycloneDX SBOM using UV (runtime, complete)
   - **scan**: Scan SBOM for vulnerabilities with Trivy (Docker-based)
   - **compliance**: Run all compliance checks (REUSE, SBOM, scan)
+  - **test**: Run tests across multiple Python versions (3.11, 3.12, 3.13)
+  - **lint**: Run Ruff linting across multiple Python versions
+  - **typecheck**: Run MyPy type checking across multiple Python versions
 - **Features**:
+  - Uses nox-uv for fast virtual environment creation
+  - UV as the default venv backend for all sessions
+  - Multi-Python version testing support (3.11, 3.12, 3.13)
   - Reuses existing virtualenvs across sessions
   - External tool support for Docker-based operations
   - Comprehensive docstrings with usage examples
@@ -144,7 +150,7 @@ Two files use Jinja2 conditional rendering:
 ### noxfile.py
 ```jinja2
 {%- if cookiecutter.include_nox == "yes" %}
-  """Full nox sessions"""
+  """Full nox-uv sessions with multi-Python version testing"""
 {%- else %}
   """Nox sessions - NOT CONFIGURED"""
 {%- endif %}
@@ -164,13 +170,15 @@ These can be customized per project by editing the generated `codecov.yml` file.
 
 ## Integration with Source Project
 
-All templates are based on the image-preprocessing-detector project structure and best practices:
+All templates are based on modern Python project best practices:
 
 - Follows project naming conventions (snake_case for modules, PascalCase for classes)
 - Includes component-based architecture patterns
 - Supports Material theme for documentation
 - Includes comprehensive compliance and security tooling
-- Compatible with Poetry package manager
+- Uses UV for fast dependency management
+- Uses nox-uv for multi-version testing automation
+- Uses Ruff for comprehensive linting and formatting
 - Supports GitHub Actions CI/CD workflows
 
 ## Usage in Generated Projects

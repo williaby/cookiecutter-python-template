@@ -25,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 - README with project overview and quick start
 - CONTRIBUTING guidelines with development workflow
-- Security policy (SECURITY.md)
-- Code of Conduct
+- References to williaby org-level Security Policy
+- References to williaby org-level Code of Conduct
 
 ### Infrastructure
 - Poetry dependency management with lock file
