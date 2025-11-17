@@ -4,10 +4,11 @@ This folder contains a complete, production-ready cookiecutter template for star
 
 ## 📦 What's Inside
 
-- **73 files** ready to use as a cookiecutter template
-- **21 analysis documents** (300+ KB) from 5 production repositories (in docs-reference/)
-- **40+ configuration options** for customization
-- **Complete project structure** with best practices
+- **Production-ready cookiecutter template** with 40+ configuration options
+- **Complete project structure** with modern Python best practices
+- **CI/CD workflows** for GitHub Actions
+- **Security scanning** and compliance tools
+- **Optional monitoring utilities** for advanced use cases
 
 ## 📁 Folder Structure
 
@@ -17,34 +18,46 @@ cookiecutter-python-template/
 ├── hooks/
 │   ├── pre_gen_project.py        # Pre-generation validation
 │   └── post_gen_project.py       # Post-generation cleanup
-├── docs-reference/
-│   └── analysis/                 # 21 analysis documents (300+ KB)
-│       ├── INDEX.md              # Navigation guide
-│       ├── zen-mcp-patterns-analysis.md
-│       ├── XERO_API_CODE_EXAMPLES.md (1,502 lines)
-│       ├── SECURITY_SUMMARY.md
-│       ├── LEDGER_DATABASE_PATTERNS_ANALYSIS.md
-│       └── ... (16 more docs)
-├── {{cookiecutter.project_slug}}/  # Template files (46 files)
+├── {{cookiecutter.project_slug}}/  # Main template (46 files)
 │   ├── .github/
 │   │   └── workflows/            # 4 CI/CD workflows
 │   ├── src/{{cookiecutter.project_slug}}/
 │   │   ├── __init__.py
-│   │   └── (your code here)
+│   │   ├── cli.py                # Optional CLI
+│   │   ├── core/                 # Core functionality
+│   │   └── utils/                # Utility modules
 │   ├── tests/
 │   │   ├── conftest.py
+│   │   ├── unit/                 # Unit tests
+│   │   ├── integration/          # Integration tests
 │   │   └── test_example.py
 │   ├── docs/
-│   ├── pyproject.toml
-│   ├── .pre-commit-config.yaml
-│   ├── codecov.yml
-│   ├── renovate.json
-│   ├── mkdocs.yml
+│   │   ├── ADRs/                 # Architecture Decision Records
+│   │   └── planning/             # Project planning templates
+│   ├── pyproject.toml            # Poetry/PEP 621 configuration
+│   ├── .pre-commit-config.yaml   # Pre-commit hooks
+│   ├── codecov.yml               # Code coverage config
+│   ├── renovate.json             # Dependency updates
+│   ├── mkdocs.yml                # Documentation site
 │   ├── README.md
 │   ├── LICENSE
+│   ├── SECURITY.md
+│   ├── CONTRIBUTING.md
 │   └── ... (32 more files)
-├── PUSH_TO_GITHUB.md             # Detailed push guide
-└── QUICK_START.sh                # Interactive push script
+├── {{ cookiecutter.repo_name }}/  # Optional monitoring utilities
+│   ├── src/monitoring/           # Monitoring components
+│   │   ├── ab_testing_dashboard.py
+│   │   ├── metrics_collector.py
+│   │   ├── performance_dashboard.py
+│   │   └── service_token_monitor.py
+│   └── tests/unit/monitoring/    # Monitoring tests
+├── .github/
+│   ├── workflows/
+│   │   ├── validate-template.yml # Template validation
+│   │   └── release-drafter.yml   # Auto release notes
+│   └── release-drafter.yml       # Release config
+├── .pre-commit-config.yaml       # Template repo hooks
+└── QUICK_START.sh                # Interactive setup script
 ```
 
 ## 🚀 How to Use This Template
@@ -118,19 +131,6 @@ cookiecutter ~/my-templates/cookiecutter-template
 - `include_audit_logging`: Audit trail
 - `use_decimal_precision`: Decimal for money
 
-### Analysis Documents (docs-reference/analysis/)
-
-All analysis documents from 5 production repositories:
-- **zen-mcp-server**: MCP protocol patterns
-- **xero-practice-management**: API integration patterns
-- **pp-security-master**: Security enhancements
-- **FISProject**: Financial system patterns
-- **ledgerbase**: Database/ledger patterns
-
-See `docs-reference/analysis/INDEX.md` for complete navigation guide.
-
-> **Note**: Analysis documents are kept in `docs-reference/` for reference purposes. They are not included in generated projects.
-
 ### Template Files ({{cookiecutter.project_slug}}/)
 
 Complete project structure with:
@@ -191,17 +191,19 @@ my_awesome_project/
 
 ## 🔄 Version History
 
+- **v1.1** (2025-11-17): Streamlined release
+  - Removed reference documentation (docs-reference/)
+  - Added optional monitoring utilities
+  - Focused on core template functionality
 - **v1.0** (2025-11-17): Initial release with patterns from 5 repositories
   - 73 files, 40+ configuration options
-  - 22 analysis documents (300+ KB)
-  - 95% coverage of Python project needs
+  - Complete Python project template
 
 ## 📖 Documentation
 
-- **PUSH_TO_GITHUB.md**: Complete guide for pushing to GitHub
-- **QUICK_START.sh**: Interactive script for pushing
-- **docs-reference/analysis/INDEX.md**: Navigation for all analysis documents
-- **cookiecutter.json**: All configuration options with comments
+- **QUICK_START.sh**: Interactive script for template setup
+- **cookiecutter.json**: All configuration options with detailed comments
+- **Template README**: Each generated project includes comprehensive documentation
 
 ## 🙏 Based On
 
@@ -216,15 +218,26 @@ This template was created from patterns found in:
 ## 📞 Support
 
 For questions or issues:
-- Review the analysis documents in `docs-reference/analysis/`
-- Check `PUSH_TO_GITHUB.md` for setup instructions
-- See individual pattern documents for implementation guides
+- Review the generated project's documentation (in each project's `docs/` folder)
+- Check the cookiecutter.json file for all available configuration options
+- Use QUICK_START.sh for interactive template setup
+
+## 🎁 Optional Components
+
+### Monitoring Utilities ({{ cookiecutter.repo_name }}/)
+
+Optional monitoring components available for advanced use cases:
+- **A/B Testing Dashboard**: Track and visualize A/B test results
+- **Metrics Collector**: Collect and aggregate system metrics
+- **Performance Dashboard**: Monitor application performance
+- **Service Token Monitor**: Track service token usage and rotation
+
+These components are not included in generated projects by default but can be copied manually for specific use cases.
 
 ---
 
-**Total Files**: 73 files
-**Analysis Documents**: 21 documents (300+ KB, in docs-reference/)
 **Configuration Options**: 40+ options
+**Template Files**: 46 files in main template
+**Monitoring Utilities**: 9 files (optional)
 **Coverage**: 95% of Python project needs
-**Template Files**: 46 files
-**Created**: 2025-11-17
+**Last Updated**: 2025-11-17
