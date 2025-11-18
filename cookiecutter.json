@@ -83,6 +83,10 @@
   "include_nox": ["yes", "no"],
   "include_docker": ["no", "yes"],
 
+  "_comment_monitoring": "Monitoring and Observability",
+  "include_sentry": ["no", "yes"],
+  "include_health_checks": ["yes", "no"],
+
   "_comment_community": "Community Files",
   "use_reuse_licensing": ["yes", "no"],
   "include_code_of_conduct": ["yes", "no"],
