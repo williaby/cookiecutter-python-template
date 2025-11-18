@@ -1,0 +1,298 @@
+================================================================================
+DETAILED CODE PATTERNS FOR CENTRALIZATION - QUICK REFERENCE
+================================================================================
+
+1. AUTHENTICATION/AUTHORIZATION PATTERNS
+────────────────────────────────────────
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/middleware/security.py
+Lines 39-100
+Pattern: SecurityHeadersMiddleware
+Status: Per-project (should be centralized)
+Headers: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, HSTS, CSP, Referrer-Policy, Permissions-Policy
+Recommendation: Move to api-gateway service
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/middleware/security.py
+Lines 102-173
+Pattern: RateLimitMiddleware
+Status: In-memory only (not production-ready)
+Issue: Lost on restart, single-instance only
+Recommendation: Move to api-gateway with Redis backend
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/core/sentry.py
+Lines 330-368
+Pattern: set_user_context()
+Status: Manual tracking required
+Use Case: Track user context for error correlation
+Recommendation: Move to audit-logging-service
+
+────────────────────────────────────────────────────────────────────────────────
+
+2. EMAIL/NOTIFICATION PATTERNS
+──────────────────────────────
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/jobs/worker.py
+Lines 80-109
+Function: send_email_task()
+Status: Skeleton/TODO implementation
+Missing: Email provider integration, templates, delivery tracking
+Recommendation: Use notification-service (already documented in central-services/)
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/jobs/worker.py
+Lines 262-291
+Function: enqueue_task()
+Status: Basic wrapper around ARQ
+Enhancement Opportunity: Add retry strategies, dead letter queue, monitoring
+Recommendation: Could be part of job-queue-service
+
+Sample Centralized Pattern:
+```python
+from notification_client import NotificationClient
+
+client = NotificationClient()
+await client.send_email(
+    to="user@example.com",
+    template="welcome",
+    context={"name": "John"},
+    tags=["onboarding"],
+    schedule_at=None  # Optional: schedule for later
+)
+```
+
+────────────────────────────────────────────────────────────────────────────────
+
+3. FILE UPLOAD/STORAGE PATTERNS
+───────────────────────────────
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/jobs/worker.py
+Lines 112-146
+Function: process_file_upload()
+Status: Skeleton implementation
+Missing: S3 integration, virus scanning, encryption, validation
+Recommendation: Use storage-service (planned in central-services/)
+
+What's Needed:
+- S3/blob storage client
+- File validation (type, size, format)
+- Virus/malware scanning (ClamAV or similar)
+- Encryption at rest
+- Access control
+- CDN integration
+- Audit logging
+
+────────────────────────────────────────────────────────────────────────────────
+
+4. EXTERNAL API CLIENT PATTERNS
+────────────────────────────────
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/api/health.py
+Lines 147-175
+Function: check_external_service()
+Status: Placeholder only
+Missing: Actual HTTP client implementation
+
+What's Needed:
+- HTTP client pooling (httpx.AsyncClient)
+- Request signing/authentication
+- Automatic retry with exponential backoff
+- Timeout management
+- Circuit breaker pattern
+- Request/response caching
+- Response validation
+
+Best Practice Example:
+```python
+from api_clients import BaseAPIClient
+
+class MyServiceClient(BaseAPIClient):
+    base_url = "https://api.example.com"
+    
+    async def get_user(self, user_id: str) -> dict:
+        return await self.get(f"/users/{user_id}")
+    
+    # Built-in: retries, circuit breaker, caching, auth, timeouts
+```
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/core/sentry.py
+Status: GOOD PATTERN (follow this for other APIs)
+Why Good:
+- Proper initialization pattern
+- Hook architecture for data filtering
+- Environment-aware config
+- PII filtering
+
+────────────────────────────────────────────────────────────────────────────────
+
+5. COMMON MIDDLEWARE PATTERNS
+──────────────────────────────
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/middleware/security.py
+Lines 273-282
+Pattern: CORS Middleware
+Status: Per-project (should be centralized)
+Why Centralize: Org-wide policy consistency
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/middleware/security.py
+Lines 176-225
+Pattern: SSRFPreventionMiddleware
+Status: Basic implementation
+Blocks: localhost, private IPs, cloud metadata endpoints
+Enhancement: Should be in api-gateway, more sophisticated rules
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/middleware/security.py
+Lines 228-327
+Function: add_security_middleware()
+Status: Good example of middleware composition
+Recommendation: Move all to api-gateway service for single-point management
+
+────────────────────────────────────────────────────────────────────────────────
+
+6. CONFIGURATION MANAGEMENT PATTERNS
+────────────────────────────────────
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/core/config.py
+Status: Static configuration from environment
+Pattern:
+```python
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="{{ cookiecutter.project_slug }}_")
+    log_level: str = "INFO"
+    json_logs: bool = False
+
+settings = Settings()
+```
+
+Limitations:
+1. No dynamic configuration (requires redeployment)
+2. No feature flags
+3. Uses .env files (secret management risk)
+4. No audit trail for changes
+5. No multi-tenant support
+
+What's Needed:
+- Central config-service for runtime changes
+- Feature flag service with gradual rollouts
+- Secrets manager (Vault) integration
+- Config versioning and audit trail
+- Multi-tenant support
+
+Central Config Example:
+```python
+from config_client import ConfigClient
+
+config = ConfigClient(url="https://config.your-domain.com")
+
+# Dynamic config
+log_level = await config.get("log_level")
+
+# Feature flags
+if await config.feature_enabled("new_checkout"):
+    # new checkout flow
+    pass
+
+# Secrets
+db_password = await config.get_secret("database_password")
+```
+
+────────────────────────────────────────────────────────────────────────────────
+
+7. AUDIT LOGGING PATTERNS
+─────────────────────────
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/utils/logging.py
+Status: Good foundation, but incomplete
+Pattern:
+```python
+def setup_logging(level="INFO", json_logs=False):
+    processors = [
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        # Environment-aware: JSON for prod, pretty-print for dev
+    ]
+```
+
+Strengths:
+- JSON output for production
+- Structured logging (key-value pairs)
+- Environment-aware
+- Rich console formatting for development
+
+Missing:
+- Audit-specific logging module
+- Event classification/taxonomy
+- Compliance logging (PCI-DSS, HIPAA, etc.)
+- Data sensitivity marking
+- Log retention policies
+- Centralized log aggregation
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/utils/logging.py
+Lines 126-162
+Function: log_performance()
+Status: Simple implementation
+Tracks: operation name, duration_ms, success, custom context
+Recommendation: Centralize to metrics service
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/utils/financial.py
+Lines 130-146
+Function: format_audit_amount()
+Status: Minimal (just formatting)
+Missing: Actual audit logging for financial transactions
+
+What's Needed:
+```python
+async def audit_log_transaction(
+    transaction_id: str,
+    amount: Decimal,
+    currency: str,
+    from_account: str,
+    to_account: str,
+    reason: str,
+    user_id: str,
+    authorized_by: str,
+    timestamp: datetime,
+) -> None:
+    """Log financial transaction immutably"""
+    # Must be:
+    # - Immutable (append-only)
+    # - Tamper-proof
+    # - Include all parties
+    # - Include authorization chain
+    # - Compliant with regulations (PCI-DSS, SOX, etc.)
+```
+
+File: {{cookiecutter.project_slug}}/src/{{cookiecutter.project_slug}}/core/sentry.py
+Lines 285-327
+Function: capture_message()
+Pattern: Custom event tracking via Sentry
+Function: add_breadcrumb()
+Pattern: Event sequence tracking
+
+Both Should Be Centralized:
+- Event taxonomy/classification
+- Cross-service event correlation
+- Event replay for debugging
+- Event archival and compliance
+
+================================================================================
+CENTRALIZATION PRIORITY MATRIX
+================================================================================
+
+HIGH PRIORITY (Week 1-2):
+  1. Auth Service (JWT, OAuth, API keys) ........................... READY
+  2. Secrets Manager (Vault integration) ............................ READY
+  3. Notification Service (email/SMS/push) .......................... READY
+  4. Configuration Service (dynamic config) ......................... DESIGN
+  5. API Gateway (rate limiting, CORS, SSRF) ....................... DESIGN
+
+MEDIUM PRIORITY (Week 3-4):
+  1. Audit Logging Service (events, compliance) ..................... DESIGN
+  2. Storage Service (S3, CDN, file processing) ..................... SKELETON
+  3. Feature Flags Service (gradual rollouts, A/B testing) ......... DESIGN
+  4. API Clients Library (base client, common SDKs) ................. DESIGN
+
+LOWER PRIORITY (Week 5+):
+  1. Job Queue Service (separate if complex) ....................... OPTIONAL
+  2. Metrics/Observability Service ................................ OPTIONAL
+  3. Event Bus/Message Broker ..................................... OPTIONAL
+
+================================================================================
