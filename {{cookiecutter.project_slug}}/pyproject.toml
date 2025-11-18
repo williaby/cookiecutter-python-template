@@ -62,6 +62,16 @@ dependencies = [
     #   # Typing enhancements
     #   "typing-extensions>=4.12.0; python_version < '3.13'",  # For latest typing features
     #
+    # PYTHON 3.14+ CONSIDERATIONS:
+    #   - from __future__ import annotations is deprecated (but still works until 2029+)
+    #   - Free-threaded mode (python3.14t) may need GIL-compatible packages
+    #   - NotImplemented in boolean context raises TypeError (was warning)
+    #   - PEP 649: Deferred annotation evaluation (impacts runtime introspection)
+    #
+    # Examples for 3.14+ compatibility:
+    #   # Free-threaded mode support (check package documentation)
+    #   "numpy>=2.1.0; python_version >= '3.14'",  # Supports free-threaded mode
+    #
     # UV handles these automatically based on the Python version being used.
     # See: https://docs.astral.sh/uv/concepts/dependencies/#dependency-specifiers
 ]
@@ -293,6 +303,10 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "benchmark: marks tests as benchmark tests",
+    "py310: marks tests specific to Python 3.10",
+    "py311plus: marks tests requiring Python 3.11+",
+    "py313plus: marks tests requiring Python 3.13+ (PEP 594 removals)",
+    "py314plus: marks tests requiring Python 3.14+ (free-threaded, PEP 649)",
 ]
 
 # Coverage Configuration

@@ -4,14 +4,14 @@ This project supports **Python 3.10, 3.11, 3.12, 3.13, and 3.14** with full test
 
 ## Version Support Matrix
 
-| Python Version | Support Status | Testing | Notes |
-|----------------|----------------|---------|-------|
-| 3.10 | ✅ Supported | ✅ Full CI/CD | Minimum version |
-| 3.11 | ✅ Supported | ✅ Full CI/CD | LTS version |
-| 3.12 | ✅ Supported | ✅ Full CI/CD | Default version |
-| 3.13 | ✅ Supported | ✅ Full CI/CD | Latest stable |
-| 3.14 | ✅ Supported | ✅ Full CI/CD | Pre-release/Latest |
-| 3.15+ | ⚠️ Not tested | ❌ No CI/CD | May work but not guaranteed |
+| Python Version | Support Status | Nox Testing | CI Testing | Notes |
+|----------------|----------------|-------------|------------|-------|
+| 3.10 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Minimum version, requires backports |
+| 3.11 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | LTS version (EOL Oct 2027) |
+| 3.12 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Default/recommended version |
+| 3.13 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Latest stable, PEP 594 removals |
+| 3.14 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Latest (Oct 2025), free-threaded, JIT |
+| 3.15+ | ⚠️ Not tested | ❌ None | ❌ No CI/CD | May work but not guaranteed |
 
 ## Python 3.10 Support (Backports Needed)
 
@@ -161,6 +161,93 @@ dependencies = [
 - **Just-in-Time (JIT) compiler** (experimental, opt-in)
 - **Improved error messages** with better suggestions
 - **Better typing support** for generics
+
+## Python 3.14 Changes
+
+Python 3.14.0 was released on October 7, 2025, with significant performance and concurrency improvements.
+
+### Free-Threaded Python (PEP 779)
+
+Python 3.14 officially supports **free-threaded mode** (no Global Interpreter Lock):
+
+```bash
+# Install free-threaded Python
+uv python install 3.14t
+
+# Check if GIL is disabled
+python -c "import sys; print(f'GIL enabled: {sys._is_gil_enabled()}')"
+```
+
+**Important Considerations:**
+- Not all packages support free-threaded mode yet
+- Some C extensions require GIL
+- Performance may vary - benchmark your workload
+- Use standard Python 3.14 unless you specifically need multi-threading
+
+### Deferred Annotation Evaluation (PEP 649)
+
+**Breaking Change:** Annotations are no longer evaluated at function definition time.
+
+```python
+# Python 3.13 and earlier
+def func(x: expensive_type_check()):  # Evaluated immediately
+    pass
+
+# Python 3.14
+def func(x: expensive_type_check()):  # Deferred until introspection
+    pass
+```
+
+**Impact on Runtime Type Checking:**
+- Libraries like Pydantic and dataclasses handle this automatically
+- Custom type introspection code may need updates
+- Access annotations via `__annotations__` or `inspect.get_annotations()`
+
+### Template Strings (PEP 750)
+
+Python 3.14 adds template strings (t-strings):
+
+```python
+name = "world"
+message = t"Hello {name}"  # New syntax
+```
+
+This project does **not** require t-strings - standard f-strings work across all versions.
+
+### Deprecations
+
+**`from __future__ import annotations` is deprecated:**
+- This template's `check_type_hints.py` currently enforces this import
+- Deprecation in 3.14, removal not before Python 3.13 EOL (2029)
+- Continue using it for now (required for 3.10 compatibility)
+- We'll update the template before 2029
+
+**NotImplemented Boolean Context:**
+- Using `NotImplemented` in boolean contexts now raises `TypeError`
+- Was `DeprecationWarning` since Python 3.9
+
+### New Features
+
+- **compression.zstd module:** Native Zstandard compression
+- **pathlib enhancements:** Recursive copy/move methods
+- **Experimental JIT compiler:** Included in official binaries
+- **Better error messages:** More context and suggestions
+- **Syntax highlighting:** In default interactive shell
+- **Android platform support:** Official binary releases
+- **Emscripten support:** Tier 3 platform support
+
+### Testing with Python 3.14
+
+```bash
+# Install Python 3.14
+uv python install 3.14
+
+# Run tests with 3.14
+uv run --python 3.14 pytest
+
+# Test all versions including 3.14
+nox -s test
+```
 
 ## Cross-Version Dependency Patterns
 

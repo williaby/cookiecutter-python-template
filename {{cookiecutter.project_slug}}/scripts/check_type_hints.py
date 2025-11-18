@@ -5,6 +5,12 @@ This script enforces a code quality standard to ensure that Python files using
 the modern | union type syntax (introduced in Python 3.10) also include the
 future annotations import for clarity and consistency.
 
+NOTE: Python 3.14 deprecates 'from __future__ import annotations' (PEP 649),
+but it will remain functional until at least Python 3.13 EOL in 2029. This
+script will be updated when the ecosystem transitions to PEP 649's deferred
+annotation evaluation. For now, continue using the future import for Python
+3.10+ compatibility.
+
 Usage:
     python scripts/check_type_hints.py [--fix]
 

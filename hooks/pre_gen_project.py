@@ -83,7 +83,7 @@ def main() -> None:
         )
 
     # Validate Python version
-    valid_versions = ["3.11", "3.12", "3.13"]
+    valid_versions = ["3.10", "3.11", "3.12", "3.13", "3.14"]
     if python_version not in valid_versions:
         errors.append(
             f"ERROR: '{python_version}' is not a supported Python version.\n"
