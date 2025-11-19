@@ -1,0 +1,123 @@
+{% if cookiecutter.include_sonarcloud == "yes" -%}
+# {{ cookiecutter.project_name }} - SonarCloud Analysis
+# Continuous code quality and security analysis
+#
+# Features:
+#   - Code quality metrics (bugs, code smells, technical debt)
+#   - Security vulnerability detection (OWASP Top 10)
+#   - Test coverage tracking
+#   - Quality gate enforcement
+#   - Pull request decoration
+#
+# SonarCloud Dashboard: https://sonarcloud.io/dashboard?id={{ cookiecutter.github_org_or_user }}_{{ cookiecutter.project_slug }}
+# Documentation: https://docs.sonarsource.com/sonarqube-cloud/
+
+name: SonarCloud
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write  # Required for PR decoration
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Disable shallow clone for better analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '{{ cookiecutter.python_version }}'
+          cache: 'pip'
+
+      - name: Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen --all-extras
+
+      - name: Run tests with coverage
+        run: |
+          # Generate coverage in Cobertura XML format for SonarCloud
+          uv run pytest \
+            --cov=src/{{ cookiecutter.project_slug }} \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term \
+            --cov-branch \
+            -v
+        continue-on-error: true  # Don't fail on test failures; let SonarCloud report them
+
+      - name: Verify coverage report
+        run: |
+          if [ ! -f coverage.xml ]; then
+            echo "::warning::Coverage report not found. Tests may have failed."
+            # Create empty coverage file to prevent SonarCloud error
+            echo '<?xml version="1.0" ?><coverage version="1.0"></coverage>' > coverage.xml
+          else
+            echo "✓ Coverage report generated successfully"
+            ls -lh coverage.xml
+          fi
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}  # Needed for PR decoration
+          SONAR_TOKEN: {% raw %}${{ secrets.SONAR_TOKEN }}{% endraw %}      # SonarCloud authentication
+        with:
+          args: >
+            -Dsonar.organization={{ cookiecutter.sonarcloud_organization }}
+            -Dsonar.projectKey={{ cookiecutter.github_org_or_user }}_{{ cookiecutter.project_slug }}
+            -Dsonar.python.version={{ cookiecutter.python_version }}
+
+      - name: Check Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: {% raw %}${{ secrets.SONAR_TOKEN }}{% endraw %}
+        continue-on-error: true  # Don't fail workflow, just report status
+
+      - name: Quality Gate Summary
+        if: always()
+        run: |
+          echo "### SonarCloud Quality Gate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results: https://sonarcloud.io/dashboard?id={{ cookiecutter.github_org_or_user }}_{{ cookiecutter.project_slug }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Metrics analyzed:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Quality (bugs, code smells, maintainability)" >> $GITHUB_STEP_SUMMARY
+          echo "- Security (vulnerabilities, security hotspots)" >> $GITHUB_STEP_SUMMARY
+          echo "- Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Duplication" >> $GITHUB_STEP_SUMMARY
+          echo "- Technical Debt" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-sonarcloud
+          path: |
+            coverage.xml
+            .coverage
+          retention-days: 7
+{% endif -%}

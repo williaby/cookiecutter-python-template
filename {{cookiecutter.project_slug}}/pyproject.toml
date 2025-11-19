@@ -345,6 +345,9 @@ markers = [
 [tool.coverage.run]
 source = ["src"]
 branch = true
+{% if cookiecutter.include_sonarcloud == "yes" -%}
+relative_files = true  # Required for SonarCloud in GitHub Actions
+{% endif -%}
 omit = [
     "*/tests/*",
     "*/test_*.py",

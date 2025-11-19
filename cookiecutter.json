@@ -72,6 +72,8 @@
   "include_gitleaks": ["yes", "no"],
   "include_fuzzing": ["no", "yes"],
   "include_codecov": ["yes", "no"],
+  "include_sonarcloud": ["no", "yes"],
+  "sonarcloud_organization": "your-org",
   "include_renovate": ["yes", "no"],
 
   "_comment_security": "Enhanced Security (from pp-security-master analysis)",

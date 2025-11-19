@@ -100,6 +100,11 @@ def cleanup_conditional_files() -> None:
         remove_file(Path("codecov.yml"))
         remove_file(Path(".github/workflows/codecov.yml"))
 
+    # Remove SonarCloud if not needed
+    if "{{ cookiecutter.include_sonarcloud }}" == "no":
+        remove_file(Path("sonar-project.properties"))
+        remove_file(Path(".github/workflows/sonarcloud.yml"))
+
     # Remove renovate if not needed
     if "{{ cookiecutter.include_renovate }}" == "no":
         remove_file(Path("renovate.json"))

@@ -278,3 +278,9 @@ tmp_cleanup/
 .tmp-*
 results/
 output/
+
+{% if cookiecutter.include_sonarcloud == "yes" -%}
+# SonarCloud
+.scannerwork/
+.sonar/
+{% endif -%}
