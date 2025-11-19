@@ -416,7 +416,7 @@ tests = [
     "B322",  # unverified_context
     "B323",  # unverified_ftp
     "B324",  # hashlib
-    "B325",  # tempnam
+    # B325 removed - invalid test ID in current Bandit version
 ]
 
 # UV Configuration

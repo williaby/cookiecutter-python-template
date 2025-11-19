@@ -233,6 +233,65 @@ def create_initial_directories() -> None:
     print(f"  ✓ Created {len(directories)} directories")
 
 
+def render_workflow_templates() -> None:
+    """Render GitHub workflow templates with cookiecutter variables.
+
+    This fixes the issue where workflows from external repositories contain
+    unrendered Jinja2 variables. We replace them with actual cookiecutter values.
+    """
+    print("\n🔧 Rendering GitHub workflow templates...")
+
+    workflows_dir = Path(".github/workflows")
+    if not workflows_dir.exists():
+        print("  ⚠ No workflows directory found - skipping template rendering")
+        return
+
+    # Cookiecutter context variables
+    context = {
+        "project_name": "{{ cookiecutter.project_name }}",
+        "project_slug": "{{ cookiecutter.project_slug }}",
+        "python_version": "{{ cookiecutter.python_version }}",
+        "pypi_package_name": "{{ cookiecutter.pypi_package_name }}",
+        "github_org_or_user": "{{ cookiecutter.github_org_or_user }}",
+        "author_name": "{{ cookiecutter.author_name }}",
+        "author_email": "{{ cookiecutter.author_email }}",
+        "version": "{{ cookiecutter.version }}",
+    }
+
+    rendered_count = 0
+    workflow_files = list(workflows_dir.glob("*.yml")) + list(workflows_dir.glob("*.yaml"))
+    workflow_files.append(workflows_dir / "README.md")  # Also render README
+
+    for workflow_file in workflow_files:
+        if not workflow_file.exists():
+            continue
+
+        try:
+            content = workflow_file.read_text()
+            original_content = content
+
+            # Replace all {{cookiecutter.* }} variations (with/without spaces)
+            for key, value in context.items():
+                # Handle various spacing patterns
+                content = content.replace(f"{{{{ cookiecutter.{key} }}}}", value)
+                content = content.replace(f"{{{{cookiecutter.{key}}}}}", value)
+                content = content.replace(f"{{{{  cookiecutter.{key}  }}}}", value)
+
+            # Only write if changes were made
+            if content != original_content:
+                workflow_file.write_text(content)
+                rendered_count += 1
+                print(f"  ✓ Rendered: {workflow_file.name}")
+
+        except Exception as e:
+            print(f"  ⚠ Failed to render {workflow_file.name}: {e}")
+
+    if rendered_count > 0:
+        print(f"  ✓ Rendered {rendered_count} workflow file(s)")
+    else:
+        print("  ℹ No unrendered templates found (workflows already rendered)")
+
+
 def setup_claude_user_settings() -> None:
     """Interactively set up user-level Claude Code settings."""
     print("\n🤖 Claude Code User-Level Settings Setup")
@@ -434,6 +493,7 @@ def main() -> None:
 
     try:
         cleanup_conditional_files()
+        render_workflow_templates()  # Fix unrendered Jinja2 variables in workflows
         create_initial_directories()
         initialize_git()
         setup_pre_commit()

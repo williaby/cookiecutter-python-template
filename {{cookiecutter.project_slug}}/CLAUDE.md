@@ -131,18 +131,18 @@ src/{{cookiecutter.project_slug}}/
 ├── core/                    # Core business logic
 │   ├── __init__.py
 │   └── config.py           # Configuration
-├── utils/                   # Utilities
-│   ├── __init__.py
-│   ├── logging.py
-{% if cookiecutter.use_decimal_precision == "yes" -%}
-│   └── financial.py        # Financial utilities (Decimal precision)
-{% endif -%}
-└── schemas.py              # Pydantic models
+├── middleware/              # Middleware components
+│   └── __init__.py
+└── utils/                   # Utilities
+    ├── __init__.py
+    ├── financial.py        # Financial utilities (Decimal precision)
+    └── logging.py          # Structured logging
 
 tests/
 ├── unit/                   # Unit tests
 ├── integration/            # Integration tests
-└── conftest.py            # Pytest fixtures
+├── conftest.py            # Pytest fixtures
+└── test_example.py        # Example tests demonstrating best practices
 ```
 
 ## Testing Guidelines

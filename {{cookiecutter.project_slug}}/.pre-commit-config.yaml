@@ -12,17 +12,28 @@ repos:
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        stages: [pre-commit]
       - id: end-of-file-fixer
+        stages: [pre-commit]
       - id: check-yaml
+        stages: [pre-commit]
+        exclude: mkdocs.yml  # Exclude mkdocs.yml due to !ENV custom tags
       - id: check-json
+        stages: [pre-commit]
       - id: check-toml
+        stages: [pre-commit]
       - id: check-added-large-files
         args: ['--maxkb=10000']  # 10MB limit
+        stages: [pre-commit]
       - id: check-merge-conflict
+        stages: [pre-commit]
       - id: check-case-conflict
+        stages: [pre-commit]
       - id: detect-private-key
+        stages: [pre-commit]
       - id: mixed-line-ending
         args: ['--fix=lf']
+        stages: [pre-commit]
 {% if cookiecutter.include_gitleaks == "yes" %}
   # Secrets detection with Gitleaks
   - repo: https://github.com/gitleaks/gitleaks
@@ -91,12 +102,12 @@ repos:
         additional_dependencies: ['bandit[toml]']
         exclude: 'tests/.*'
 
-  # Dependency scanning with Safety
-  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.3
+  # Dependency scanning with pip-audit (UV-compatible)
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.7.3
     hooks:
-      - id: python-safety-dependencies-check
-        files: pyproject.toml
+      - id: pip-audit
+        args: ['--desc', 'on', '--skip-editable']
 {% endif %}
 # Exclude patterns
 exclude: |

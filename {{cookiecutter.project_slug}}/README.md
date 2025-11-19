@@ -49,8 +49,23 @@ This project provides:
 
 ### Prerequisites
 
-- Python {{cookiecutter.python_version}}+
-- UV for dependency management
+- Python 3.10+ (tested with {{cookiecutter.python_version}})
+- [UV](https://docs.astral.sh/uv/) for dependency management
+
+**Install UV**:
+
+```bash
+# macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or with pip/pipx
+pip install uv
+# or
+pipx install uv
+```
 
 ### Installation
 
