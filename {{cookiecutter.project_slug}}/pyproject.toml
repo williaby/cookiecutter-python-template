@@ -250,27 +250,31 @@ select = [
 
 ignore = [
     # Formatting
-    "E501",   # line too long
-    "COM812", # missing trailing comma
-    "ISC001", # implicit string concatenation
+    "E501",   # line too long (handled by formatter)
+    "COM812", # missing trailing comma (handled by formatter)
+    "ISC001", # implicit string concatenation (handled by formatter)
 
-    # Complexity
-    "C901",  # too complex
+    # Complexity - NOTE: C901 is NOT ignored, enforce max-complexity below
+    # "C901" - Removed to enable complexity checking (Google compliance)
 
     # Docstring (Google style)
-    "D203",  # one-blank-line-before-class
-    "D212",  # multi-line-docstring-summary-first-line
+    "D203",  # one-blank-line-before-class (conflicts with D211)
+    "D212",  # multi-line-docstring-summary-first-line (conflicts with D213)
 
     # Practical exceptions
-    "B008",   # function calls in defaults
-    "S101",   # assert (pytest uses assert)
-    "D105",   # missing docstring in magic method
-    "D107",   # missing docstring in __init__
-    "PTH123", # open() pathlib
-    "FBT001", # Boolean positional arg
-    "FBT002", # Boolean default arg
-    "TRY003", # Long exception messages
+    "B008",   # function calls in defaults (Pydantic/FastAPI pattern)
+    "S101",   # assert (pytest uses assert statements)
+    "D105",   # missing docstring in magic method (excessive for __str__, etc.)
+    "D107",   # missing docstring in __init__ (class docstring usually sufficient)
+    "PTH123", # open() vs pathlib (sometimes direct open is clearer)
+    "FBT001", # Boolean positional arg (sometimes acceptable in DSLs)
+    "FBT002", # Boolean default arg (sometimes acceptable in DSLs)
+    "TRY003", # Long exception messages (descriptive messages are good)
 ]
+
+# McCabe Complexity Configuration (Google/Pylint alignment)
+[tool.ruff.lint.mccabe]
+max-complexity = 10  # Google/Pylint default, stricter than we had
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

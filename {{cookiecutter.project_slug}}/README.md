@@ -277,14 +277,38 @@ qlty config show
 
 **Qlty runs all these tools in a single pass:**
 
+**Python Quality:**
+
 - Ruff (linting + formatting)
 - Mypy (type checking)
 - Bandit (security scanning)
+
+**Security & Secrets:**
+
 - Gitleaks (secrets detection)
+- TruffleHog (entropy-based secrets detection)
+- OSV Scanner (dependency vulnerabilities)
+- Semgrep (advanced SAST)
+
+**File & Configuration:**
+
 - Markdownlint (markdown linting)
 - Yamllint (YAML linting)
-- OSV Scanner (dependency vulnerabilities)
-- Code complexity and maintainability analysis
+- Prettier (JSON, YAML, Markdown formatting)
+- Actionlint (GitHub Actions workflows)
+- Shellcheck (shell script linting)
+
+**Container & Infrastructure** (if Docker enabled):
+
+- Hadolint (Dockerfile linting)
+- Trivy (container security scanning)
+- Checkov (infrastructure as code security)
+
+**Code Quality Metrics:**
+
+- Complexity analysis (cyclomatic, cognitive)
+- Code smells detection
+- Maintainability scoring
 
 ### Individual Tool Commands (if needed)
 

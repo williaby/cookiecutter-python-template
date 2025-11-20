@@ -336,16 +336,17 @@ threshold = 500  # Max lines of code per file
 # Function complexity (cyclomatic complexity)
 [smells.function_complexity]
 enabled = true
-threshold = 15  # Max cyclomatic complexity per function
+threshold = 10  # Google/Pylint standard for maintainable functions
 
 # ============================================================================
 # Python-Specific Code Quality Configuration
 # ============================================================================
-# Override smell thresholds for Python to match our coding standards
+# Override smell thresholds for Python to match Google coding standards
 
 [language.python.smells]
-# Python allows more complex functions due to decorators and context managers
-function_complexity.threshold = 20
+# Slightly more permissive than base threshold for Python's expressive features
+# (decorators, context managers, async/await) but still maintains quality
+function_complexity.threshold = 12
 
 # Python's comprehensions can have complex boolean logic
 boolean_logic.threshold = 6
@@ -387,13 +388,21 @@ severity = "medium"
 file_patterns = ["src/**/*.py"]
 exclude_patterns = ["tests/**/*.py", "scripts/**/*.py"]
 
-# Prohibit TODO without issue tracking
+# Enforce Google-style TODO format: TODO(username): description
 [[custom_rule]]
-id = "todo-with-ticket"
-pattern = "(?i)#\\s*TODO(?!.*#\\d+)"
-message = "TODO comments must reference an issue number (e.g., TODO #123)"
+id = "todo-format-google"
+pattern = "(?i)#\\s*TODO(?!\\([^)]+\\):)"
+message = "TODO format must be: TODO(username): description or TODO(#issue): description"
 severity = "low"
-file_patterns = ["**/*.py", "**/*.md"]
+file_patterns = ["**/*.py"]
+
+# Allow issue-number format as alternative
+[[custom_rule]]
+id = "todo-alternative-format"
+pattern = "(?i)#\\s*TODO\\(#\\d+\\):"
+message = "Valid TODO format"
+severity = "info"
+file_patterns = ["**/*.py"]
 
 {% if cookiecutter.use_decimal_precision == "yes" -%}
 # Prohibit float for financial calculations
