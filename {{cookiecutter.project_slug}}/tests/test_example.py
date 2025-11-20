@@ -85,39 +85,9 @@ class TestSettings:
         assert settings.json_logs is True
         assert settings.include_timestamp is False
 
-    @pytest.mark.unit
-    def test_settings_bool_env_parsing(self) -> None:
-        """Verify Settings correctly parses boolean environment variables.
-
-        This test verifies that various boolean representations
-        (true, 1, yes, on) are correctly parsed.
-        """
-        from {{ cookiecutter.project_slug }}.core.config import Settings
-
-        settings = Settings()
-
-        # Test various truthy values
-        for truthy in ["true", "1", "yes", "on"]:
-            result = settings._get_bool_env(
-                "{{ cookiecutter.project_slug|upper }}_TEST_VAR", default=False
-            )
-            # Default is used when env var not set
-            assert result is False
-
-    @pytest.mark.unit
-    def test_settings_int_env_parsing(self) -> None:
-        """Verify Settings correctly parses integer environment variables.
-
-        This test verifies that integer values are correctly parsed
-        from environment variables.
-        """
-        from {{ cookiecutter.project_slug }}.core.config import Settings
-
-        settings = Settings()
-
-        # Test integer parsing with invalid value
-        result = settings._get_int_env("NONEXISTENT_VAR", default=42)
-        assert result == 42
+    # Note: Boolean and integer environment variable parsing tests removed
+    # Pydantic BaseSettings handles environment variable parsing automatically
+    # and validates types based on field annotations. No custom parsing methods needed.
 
 
 class TestLogging:

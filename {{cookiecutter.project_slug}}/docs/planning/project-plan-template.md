@@ -452,7 +452,7 @@ The project is developed in sequential phases, each with specific objectives, de
 - **[CONTRIBUTING.md](../CONTRIBUTING.md)**: How to contribute to the project
 - **[ADRs/README.md](../ADRs/README.md)**: Architecture Decision Records
 - **[README.md](../../README.md)**: Project overview
-- **[Code of Conduct](https://github.com/williaby/.github/blob/main/CODE_OF_CONDUCT.md)**: Community guidelines (org-level)
+- **[Code of Conduct](https://github.com/{{ cookiecutter.github_org_or_user }}/.github/blob/main/CODE_OF_CONDUCT.md)**: Community guidelines (org-level)
 
 ---
 

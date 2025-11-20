@@ -386,7 +386,7 @@ The template meets 44/46 passing-level criteria:
 ## Getting Help
 
 **Security Questions**: {{cookiecutter.author_email}}
-**Vulnerability Reports**: See [Security Policy](https://github.com/williaby/.github/blob/main/SECURITY.md)
+**Vulnerability Reports**: See [Security Policy](https://github.com/{{ cookiecutter.github_org_or_user }}/.github/blob/main/SECURITY.md)
 **General Issues**: [GitHub Issues]({{cookiecutter.repo_url}}/issues)
 
 ---

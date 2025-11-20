@@ -120,14 +120,14 @@ dev = [
     "ipykernel>=6.25.0",
     "safety>=3.7.0",
     {% if cookiecutter.include_nox == "yes" -%}
-    "nox>=2025.10.16",
-    "nox-uv>=1.0.0",
+    "nox>=2024.10.16",  # Fixed: was 2025 (typo)
+    "nox-uv>=0.6.3",    # Fixed: max available version is 0.6.3, not 1.0.0
     {% endif -%}
     "mutmut>=3.3.1",
 
-    # Google Cloud Assured OSS
+    # Google Cloud Assured OSS (optional - uncomment if using Assured OSS)
     "google-auth>=2.0.0",
-    "google-cloud-assured-oss>=0.1.0",
+    # "google-cloud-assured-oss>=0.1.0",  # Package not yet available in PyPI
     "google-api-core>=2.0.0",
     "python-dotenv>=1.0.0",  # For loading .env files
 ]
@@ -421,7 +421,8 @@ tests = [
 
 # UV Configuration
 [tool.uv]
-dev-dependencies = []  # Managed via [project.optional-dependencies]
+# Note: UV now recommends using [dependency-groups] instead of dev-dependencies
+# We use [project.optional-dependencies] for dev dependencies (PEP 621 standard)
 
 # Package Index Configuration
 # Google Assured OSS as primary source with PyPI fallback
