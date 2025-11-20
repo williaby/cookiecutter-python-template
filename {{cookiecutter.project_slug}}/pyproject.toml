@@ -353,10 +353,21 @@ branch = true
 relative_files = true  # Required for SonarCloud in GitHub Actions
 {% endif -%}
 omit = [
+    # Test files
     "*/tests/*",
     "*/test_*.py",
+
+    # Python internals
     "*/__pycache__/*",
     "*/site-packages/*",
+
+    # Development artifacts (from image_detection best practices)
+    "validation/*",     # Validation/verification scripts
+    "benchmarks/*",     # Benchmarking framework
+    "data/*",           # Data processing scripts
+    "scripts/*",        # Utility scripts
+    "notebooks/*",      # Jupyter notebooks
+    "tmp_cleanup/*",    # Temporary files
 ]
 
 [tool.coverage.report]
