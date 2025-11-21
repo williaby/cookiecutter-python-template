@@ -96,7 +96,6 @@ repos:
         args: ['-v', '-c', 'pyproject.toml', 'src/']
         pass_filenames: false
         stages: [pre-commit]
-{% endif %}
 # Exclude patterns
 exclude: |
   (?x)^(

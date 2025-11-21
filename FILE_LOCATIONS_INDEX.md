@@ -73,7 +73,7 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
 **Lines:** 330-368 (set_user_context function)
 **Pattern:** Associate errors with users in Sentry
 **Status:** ✅ Code exists, should move to audit-logging-service
-**Related Functions:** 
+**Related Functions:**
 - `capture_exception()` (Lines 240-282)
 - `capture_message()` (Lines 285-327)
 - `add_breadcrumb()` (Lines 370-403)
@@ -188,7 +188,7 @@ def setup_logging(
         structlog.stdlib.add_logger_name,
         # ... more processors
     ]
-    
+
     if json_logs:
         processors.append(structlog.processors.JSONRenderer())
     else:

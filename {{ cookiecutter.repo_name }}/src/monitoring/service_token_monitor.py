@@ -10,19 +10,15 @@ This module provides monitoring capabilities for service tokens including:
 
 import asyncio
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional, Tuple
-import json
-import smtplib
-from email.mime.text import MIMEText as MimeText
-from email.mime.multipart import MIMEMultipart as MimeMultipart
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.service_token_manager import ServiceTokenManager
-from ..database.connection import get_db, database_health_check
 from ..config.settings import ApplicationSettings
+from ..database.connection import database_health_check, get_db
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +33,8 @@ class TokenExpirationAlert:
         expires_at: datetime,
         days_until_expiration: int,
         usage_count: int,
-        last_used: Optional[datetime] = None,
-        metadata: Optional[Dict] = None
+        last_used: datetime | None = None,
+        metadata: dict | None = None
     ):
         """Initialize token expiration alert.
 
@@ -83,7 +79,7 @@ class TokenExpirationAlert:
 class ServiceTokenMonitor:
     """Service token monitoring and alerting system."""
 
-    def __init__(self, settings: Optional[ApplicationSettings] = None):
+    def __init__(self, settings: ApplicationSettings | None = None):
         """Initialize service token monitor.
 
         Args:
@@ -103,7 +99,7 @@ class ServiceTokenMonitor:
     async def check_expiring_tokens(
         self,
         alert_threshold_days: int = 30
-    ) -> List[TokenExpirationAlert]:
+    ) -> list[TokenExpirationAlert]:
         """Check for tokens expiring within threshold.
 
         Args:
@@ -152,13 +148,13 @@ class ServiceTokenMonitor:
 
         return alerts
 
-    async def get_monitoring_metrics(self) -> Dict[str, Any]:
+    async def get_monitoring_metrics(self) -> dict[str, Any]:
         """Get comprehensive monitoring metrics for service tokens.
 
         Returns:
             Dictionary with monitoring metrics
         """
-        metrics: Dict[str, Any] = {
+        metrics: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "database_health": "unknown",
             "token_stats": {},
@@ -249,9 +245,9 @@ class ServiceTokenMonitor:
 
     async def send_expiration_alerts(
         self,
-        alerts: List[TokenExpirationAlert],
+        alerts: list[TokenExpirationAlert],
         notification_method: str = "log"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send expiration alerts via configured notification method.
 
         Args:
@@ -265,7 +261,7 @@ class ServiceTokenMonitor:
             return {"alerts_sent": 0, "method": notification_method}
 
         # Group alerts by severity
-        alerts_by_severity: Dict[str, List[TokenExpirationAlert]] = {}
+        alerts_by_severity: dict[str, list[TokenExpirationAlert]] = {}
         for alert in alerts:
             severity = alert.severity
             if severity not in alerts_by_severity:
@@ -311,7 +307,7 @@ class ServiceTokenMonitor:
 
         return {"alerts_sent": sent_count, "method": notification_method}
 
-    async def _send_email_alerts(self, alerts_by_severity: Dict[str, List[TokenExpirationAlert]]) -> int:
+    async def _send_email_alerts(self, alerts_by_severity: dict[str, list[TokenExpirationAlert]]) -> int:
         """Send email alerts for expiring tokens.
 
         Args:
@@ -331,7 +327,7 @@ class ServiceTokenMonitor:
 
         return total_alerts
 
-    async def _send_webhook_alerts(self, alerts_by_severity: Dict[str, List[TokenExpirationAlert]]) -> int:
+    async def _send_webhook_alerts(self, alerts_by_severity: dict[str, list[TokenExpirationAlert]]) -> int:
         """Send webhook alerts for expiring tokens.
 
         Args:
@@ -351,7 +347,7 @@ class ServiceTokenMonitor:
 
         return total_alerts
 
-    async def run_scheduled_monitoring(self) -> Dict[str, Any]:
+    async def run_scheduled_monitoring(self) -> dict[str, Any]:
         """Run scheduled monitoring tasks.
 
         Returns:
@@ -429,7 +425,7 @@ class MonitoringHealthCheck:
     """Health check utilities for monitoring systems."""
 
     @staticmethod
-    async def get_health_status() -> Dict[str, Any]:
+    async def get_health_status() -> dict[str, Any]:
         """Get comprehensive health status for monitoring systems.
 
         Returns:

@@ -1,0 +1,174 @@
+[project]
+name = "cookiecutter-python-template"
+version = "0.1.0"
+description = "Modern Python cookiecutter template with UV, Ruff, and best practices"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Byron Williams", email = "byron@example.com"},
+]
+keywords = ["cookiecutter", "template", "python", "uv", "ruff", "best-practices"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Code quality
+    "pre-commit>=3.5.0",
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+    "black>=23.12.1",
+
+    # Security
+    "bandit>=1.7.5",
+    "safety>=3.0.0",
+
+    # Template tools
+    "cookiecutter>=2.5.0",
+    "cruft>=2.15.0",
+
+    # Testing (future)
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ============================================================================
+# Tool Configurations
+# ============================================================================
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["hooks"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "PTH",    # flake8-use-pathlib
+    "RUF",    # Ruff-specific rules
+]
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"hooks/*" = [
+    "T201",   # Allow print statements in hooks
+]
+
+[tool.ruff.lint.isort]
+known-first-party = []
+force-single-line = false
+lines-after-imports = 2
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+check_untyped_defs = true
+strict_equality = true
+files = ["hooks"]
+# Disable comparison-overlap for hooks - false positives from Jinja2 template strings
+disable_error_code = ["comparison-overlap"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312', 'py313']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.ruff_cache
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | {{cookiecutter.project_slug}}
+)/
+'''
+
+[tool.bandit]
+targets = ["hooks"]
+exclude_dirs = [
+    "{{cookiecutter.project_slug}}",
+    "{{ cookiecutter.repo_name }}",
+    ".venv",
+    "tests",
+]
+skips = [
+    "B404",  # import subprocess - acceptable in hooks
+    "B603",  # subprocess without shell=True - safe usage in hooks
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=hooks",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-fail-under=80",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["hooks"]
+omit = [
+    "tests/*",
+    "{{cookiecutter.project_slug}}/*",
+    "{{ cookiecutter.repo_name }}/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]

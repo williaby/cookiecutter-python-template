@@ -87,13 +87,9 @@ dev = [
     "pytest-xdist>=3.3.0",
     "hypothesis>=6.82.0",
 
-    # Code Quality
-    {% if cookiecutter.use_ruff == "yes" -%}
+    # Code Quality (always included)
     "ruff>=0.9.0",
-    {% endif -%}
-    {% if cookiecutter.use_mypy == "yes" -%}
     "mypy>=1.4.0",
-    {% endif -%}
 
     # Pre-commit
     {% if cookiecutter.use_pre_commit == "yes" -%}
@@ -193,7 +189,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/{{ cookiecutter.project_slug }}"]
 
-{% if cookiecutter.use_ruff == "yes" %}
 # Ruff Configuration - Consolidated Linting & Formatting
 [tool.ruff]
 line-length = 88
@@ -291,8 +286,7 @@ known-first-party = ["{{ cookiecutter.project_slug }}"]
 {% if cookiecutter.include_nox == "yes" -%}
 "noxfile.py" = ["D", "T20"]
 {% endif -%}
-{% endif %}
-{% if cookiecutter.use_mypy == "yes" %}
+
 # MyPy Configuration
 [tool.mypy]
 python_version = "{{ cookiecutter.python_version }}"
@@ -315,7 +309,7 @@ strict_optional = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
-{% endif %}
+
 # Pytest Configuration
 [tool.pytest.ini_options]
 minversion = "7.0"

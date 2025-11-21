@@ -106,6 +106,11 @@ def autofix_front_matter(path: Path) -> bool:
     Returns:
         True if changes were made, False otherwise.
     """
+    # Security: Validate file path is within expected directory BEFORE reading
+    if not path.resolve().is_relative_to(Path.cwd()):
+        print(f"Security: Path {path} is outside current directory", file=sys.stderr)
+        return False
+
     text = path.read_text(encoding="utf-8")
 
     # Find front matter block

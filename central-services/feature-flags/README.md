@@ -1,6 +1,6 @@
 # $(basename $dir | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g') Service
 
-**Status**: 🔵 Optional  
+**Status**: 🔵 Optional
 **Priority**: Medium-Low
 
 ## 🎯 Purpose

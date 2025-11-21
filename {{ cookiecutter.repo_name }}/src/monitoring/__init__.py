@@ -19,30 +19,14 @@ Usage:
 
 import asyncio
 import logging
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
-from src.core.token_optimization_monitor import (
-    TokenOptimizationMonitor,
-    get_token_optimization_monitor,
-    initialize_monitoring
-)
-from src.monitoring.metrics_collector import (
-    MetricsCollector,
-    get_metrics_collector,
-    initialize_metrics_collection
-)
-from src.monitoring.performance_dashboard import (
-    RealTimeDashboard,
-    AlertManager,
-    get_dashboard_app
-)
-from src.monitoring.integration_utils import (
-    IntegrationManager,
-    get_integration_manager,
-    initialize_integrations
-)
+from src.core.token_optimization_monitor import TokenOptimizationMonitor, initialize_monitoring
+from src.monitoring.integration_utils import IntegrationManager, initialize_integrations
+from src.monitoring.metrics_collector import MetricsCollector, initialize_metrics_collection
+from src.monitoring.performance_dashboard import AlertManager, RealTimeDashboard
 from src.utils.observability import create_structured_logger
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +34,7 @@ logger = logging.getLogger(__name__)
 class MonitoringSystemConfig:
     """Configuration for the monitoring system."""
 
-    def __init__(self, config_dict: Optional[Dict[str, Any]] = None):
+    def __init__(self, config_dict: dict[str, Any] | None = None):
         config = config_dict or {}
 
         # Core monitoring settings
@@ -104,11 +88,11 @@ class MonitoringSystem:
         self.logger = create_structured_logger("monitoring_system")
 
         # Core components
-        self.monitor: Optional[TokenOptimizationMonitor] = None
-        self.metrics_collector: Optional[MetricsCollector] = None
-        self.dashboard: Optional[RealTimeDashboard] = None
-        self.alert_manager: Optional[AlertManager] = None
-        self.integration_manager: Optional[IntegrationManager] = None
+        self.monitor: TokenOptimizationMonitor | None = None
+        self.metrics_collector: MetricsCollector | None = None
+        self.dashboard: RealTimeDashboard | None = None
+        self.alert_manager: AlertManager | None = None
+        self.integration_manager: IntegrationManager | None = None
 
         # Status tracking
         self.initialized = False
@@ -268,7 +252,7 @@ class MonitoringSystem:
         while self.running:
             try:
                 if self.alert_manager:
-                    alerts = await self.alert_manager.check_alerts()
+                    await self.alert_manager.check_alerts()
 
                     # Send metrics to external integrations
                     if self.integration_manager and self.monitor:
@@ -325,7 +309,7 @@ class MonitoringSystem:
                 self.logger.error(f"Error in health check loop: {e}")
                 await asyncio.sleep(900)
 
-    async def get_system_status(self) -> Dict[str, Any]:
+    async def get_system_status(self) -> dict[str, Any]:
         """Get comprehensive system status."""
 
         status = {
@@ -355,7 +339,7 @@ class MonitoringSystem:
 
         return status
 
-    async def generate_report(self, include_recommendations: bool = True) -> Dict[str, Any]:
+    async def generate_report(self, include_recommendations: bool = True) -> dict[str, Any]:
         """Generate comprehensive monitoring report."""
 
         if not self.metrics_collector:
@@ -408,10 +392,10 @@ class MonitoringSystem:
 
 
 # Global monitoring system instance
-_monitoring_system: Optional[MonitoringSystem] = None
+_monitoring_system: MonitoringSystem | None = None
 
 
-async def initialize_monitoring_system(config: Optional[Dict[str, Any]] = None) -> Tuple[TokenOptimizationMonitor, MetricsCollector, RealTimeDashboard]:
+async def initialize_monitoring_system(config: dict[str, Any] | None = None) -> tuple[TokenOptimizationMonitor, MetricsCollector, RealTimeDashboard]:
     """Initialize the complete monitoring system."""
 
     global _monitoring_system
@@ -432,7 +416,7 @@ async def initialize_monitoring_system(config: Optional[Dict[str, Any]] = None) 
     )
 
 
-def get_monitoring_system() -> Optional[MonitoringSystem]:
+def get_monitoring_system() -> MonitoringSystem | None:
     """Get the global monitoring system instance."""
     return _monitoring_system
 
@@ -449,14 +433,14 @@ async def shutdown_monitoring_system():
 
 # Export public API
 __all__ = [
-    "MonitoringSystemConfig",
-    "MonitoringSystem",
-    "initialize_monitoring_system",
-    "get_monitoring_system",
-    "shutdown_monitoring_system",
-    "TokenOptimizationMonitor",
-    "MetricsCollector",
-    "RealTimeDashboard",
     "AlertManager",
-    "IntegrationManager"
+    "IntegrationManager",
+    "MetricsCollector",
+    "MonitoringSystem",
+    "MonitoringSystemConfig",
+    "RealTimeDashboard",
+    "TokenOptimizationMonitor",
+    "get_monitoring_system",
+    "initialize_monitoring_system",
+    "shutdown_monitoring_system"
 ]

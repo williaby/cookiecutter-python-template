@@ -128,7 +128,7 @@ Enforced branch protection rules prevent unauthorized changes.
 
 ```bash
 # Set GitHub token
-export GITHUB_TOKEN=ghp_your_token_here
+export GITHUB_TOKEN=<YOUR_GITHUB_TOKEN>
 
 # Run setup script
 python scripts/setup_github_protection.py

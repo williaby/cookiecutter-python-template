@@ -1,7 +1,6 @@
 # Security Analysis - Calls Org-Level Reusable Workflow
 # This is a lightweight caller workflow that invokes the organization's
 # shared Python security analysis workflow with CodeQL, Bandit, Safety, and OSV.
-{% if cookiecutter.include_security_scanning == "yes" -%}
 name: Security Analysis
 
 on:
@@ -42,4 +41,3 @@ permissions:
   contents: read
   security-events: write
   pull-requests: write
-{% endif -%}

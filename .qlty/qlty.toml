@@ -40,6 +40,11 @@ exclude_patterns = [
   "**/templates/**",
   "**/testdata/**",
   "**/vendor/**",
+  # Exclude git and cache directories
+  "**/.git/**",
+  "**/.venv/**",
+  "**/__pycache__/**",
+  "**/tmp_cleanup/**",
 ]
 
 test_patterns = [

@@ -7,25 +7,22 @@ Prometheus, and provides standalone web-based dashboards.
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-import aiohttp
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-
 from src.core.token_optimization_monitor import (
     TokenOptimizationMonitor,
     get_token_optimization_monitor,
-    FunctionTier,
-    OptimizationStatus
 )
-from src.utils.performance_monitor import get_performance_monitor
 from src.utils.observability import create_structured_logger
+from src.utils.performance_monitor import get_performance_monitor
+
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +77,8 @@ class MetricsExporter:
         for tier, tier_metrics in self.monitor.function_metrics.items():
             tier_name = tier.value
             metrics_lines.extend([
-                f"# HELP functions_loaded_total Total functions loaded by tier",
-                f"# TYPE functions_loaded_total counter",
+                "# HELP functions_loaded_total Total functions loaded by tier",
+                "# TYPE functions_loaded_total counter",
                 f"functions_loaded_total{{tier=\"{tier_name}\"}} {tier_metrics.functions_loaded} {timestamp}",
                 "",
                 f"cache_hits_total{{tier=\"{tier_name}\"}} {tier_metrics.cache_hits} {timestamp}",
@@ -112,7 +109,7 @@ class MetricsExporter:
 
         return "\n".join(metrics_lines)
 
-    async def export_json_metrics(self) -> Dict[str, Any]:
+    async def export_json_metrics(self) -> dict[str, Any]:
         """Export metrics in JSON format."""
 
         return await self.monitor.export_metrics(format="json", include_raw_data=False)
@@ -124,12 +121,12 @@ class RealTimeDashboard:
     def __init__(self, monitor: TokenOptimizationMonitor):
         self.monitor = monitor
         self.metrics_exporter = MetricsExporter(monitor)
-        self.connected_clients: List[WebSocket] = []
+        self.connected_clients: list[WebSocket] = []
         self.logger = create_structured_logger("dashboard")
 
         # Dashboard update interval
         self.update_interval_seconds = 5.0
-        self._update_task: Optional[asyncio.Task] = None
+        self._update_task: asyncio.Task | None = None
 
     async def start_real_time_updates(self):
         """Start real-time dashboard updates."""
@@ -143,10 +140,8 @@ class RealTimeDashboard:
         """Stop real-time dashboard updates."""
         if self._update_task and not self._update_task.done():
             self._update_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._update_task
-            except asyncio.CancelledError:
-                pass
 
         self.logger.info("Stopped real-time dashboard updates")
 
@@ -169,7 +164,7 @@ class RealTimeDashboard:
                 self.logger.error(f"Error in dashboard update loop: {e}")
                 await asyncio.sleep(self.update_interval_seconds)
 
-    async def _generate_dashboard_data(self) -> Dict[str, Any]:
+    async def _generate_dashboard_data(self) -> dict[str, Any]:
         """Generate comprehensive dashboard data."""
 
         health_report = await self.monitor.generate_system_health_report()
@@ -261,7 +256,7 @@ class RealTimeDashboard:
             "alerts": await self._generate_alerts(health_report)
         }
 
-    async def _generate_alerts(self, health_report) -> List[Dict[str, Any]]:
+    async def _generate_alerts(self, health_report) -> list[dict[str, Any]]:
         """Generate current alerts based on thresholds."""
 
         alerts = []
@@ -313,7 +308,7 @@ class RealTimeDashboard:
 
         return alerts
 
-    async def _broadcast_to_clients(self, data: Dict[str, Any]):
+    async def _broadcast_to_clients(self, data: dict[str, Any]):
         """Broadcast data to all connected WebSocket clients."""
 
         if not self.connected_clients:
@@ -691,7 +686,7 @@ class RealTimeDashboard:
             let criteriaHtml = '';
             for (const [key, passed] of Object.entries(status.criteria_status)) {
                 const indicator = passed ? 'status-success' : 'status-error';
-                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const label = key.replace(/_/g, ' ').replace(/\b\\w/g, l => l.toUpperCase());
                 criteriaHtml += `
                     <div style="margin: 5px 0;">
                         <span class="status-indicator ${indicator}"></span>
@@ -765,13 +760,13 @@ class AlertManager:
         }
 
         # Alert state tracking
-        self.active_alerts: Dict[str, Dict[str, Any]] = {}
-        self.alert_history: List[Dict[str, Any]] = []
+        self.active_alerts: dict[str, dict[str, Any]] = {}
+        self.alert_history: list[dict[str, Any]] = []
 
         # Notification channels
         self.notification_channels = []
 
-    async def check_alerts(self) -> List[Dict[str, Any]]:
+    async def check_alerts(self) -> list[dict[str, Any]]:
         """Check current metrics against thresholds and generate alerts."""
 
         health_report = await self.monitor.generate_system_health_report()
@@ -859,7 +854,7 @@ class AlertManager:
 
         return current_alerts
 
-    async def _update_active_alerts(self, current_alerts: List[Dict[str, Any]]):
+    async def _update_active_alerts(self, current_alerts: list[dict[str, Any]]):
         """Update active alerts and send notifications for new alerts."""
 
         current_alert_ids = {alert["id"] for alert in current_alerts}
@@ -890,7 +885,7 @@ class AlertManager:
         # Update active alerts
         self.active_alerts = {alert["id"]: alert for alert in current_alerts}
 
-    async def _send_notification(self, alert: Dict[str, Any]):
+    async def _send_notification(self, alert: dict[str, Any]):
         """Send alert notification through configured channels."""
 
         # Add to alert history
@@ -908,7 +903,7 @@ class AlertManager:
         self.notification_channels.append(channel)
         self.logger.info(f"Added notification channel: {type(channel).__name__}")
 
-    def get_alert_summary(self, hours: int = 24) -> Dict[str, Any]:
+    def get_alert_summary(self, hours: int = 24) -> dict[str, Any]:
         """Get alert summary for the specified time period."""
 
         cutoff_time = datetime.now() - timedelta(hours=hours)
@@ -966,7 +961,7 @@ def create_dashboard_app(monitor: TokenOptimizationMonitor) -> FastAPI:
         return await monitor.generate_system_health_report()
 
     @app.get("/api/optimization-report")
-    async def get_optimization_report(user_id: Optional[str] = None):
+    async def get_optimization_report(user_id: str | None = None):
         return await monitor.get_optimization_report(user_id)
 
     @app.get("/api/alerts")
@@ -991,7 +986,7 @@ def create_dashboard_app(monitor: TokenOptimizationMonitor) -> FastAPI:
 
 
 # Global dashboard instance
-_dashboard_app: Optional[FastAPI] = None
+_dashboard_app: FastAPI | None = None
 
 
 def get_dashboard_app() -> FastAPI:

@@ -1,0 +1,125 @@
+# SonarCloud Analysis - Cookiecutter Python Template
+# Continuous code quality and security analysis for template repository
+#
+# Features:
+#   - Code quality metrics (bugs, code smells, technical debt)
+#   - Security vulnerability detection (OWASP Top 10)
+#   - Test coverage tracking for hooks and template files
+#   - Quality gate enforcement
+#   - Pull request decoration
+#
+# SonarCloud Dashboard: https://sonarcloud.io/project/overview?id=williaby_cookiecutter-python-template
+# Documentation: https://docs.sonarsource.com/sonarqube-cloud/
+
+name: SonarCloud
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write  # Required for PR decoration
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Disable shallow clone for better analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install cookiecutter black ruff mypy pytest pytest-cov
+
+      - name: Run tests with coverage (if tests exist)
+        run: |
+          if [ -d "tests" ]; then
+            pytest \
+              --cov=hooks \
+              --cov-report=xml:coverage.xml \
+              --cov-report=term \
+              --cov-branch \
+              -v || true
+          else
+            echo "No tests directory found, skipping coverage"
+            # Create empty coverage file to prevent SonarCloud error
+            echo '<?xml version="1.0" ?><coverage version="1.0"></coverage>' > coverage.xml
+          fi
+
+      - name: Run quality checks on hooks
+        run: |
+          echo "Running Ruff on hooks..."
+          ruff check hooks/ --output-format=json > ruff-report.json || true
+
+          echo "Running MyPy on hooks..."
+          mypy hooks/ --ignore-missing-imports --junit-xml=mypy-report.xml || true
+
+      - name: Verify coverage report
+        run: |
+          if [ ! -f coverage.xml ]; then
+            echo "::warning::Coverage report not found. Tests may have failed."
+            echo '<?xml version="1.0" ?><coverage version="1.0"></coverage>' > coverage.xml
+          else
+            echo "✓ Coverage report generated successfully"
+            ls -lh coverage.xml
+          fi
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed for PR decoration
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}      # SonarCloud authentication
+
+      - name: Check Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true  # Don't fail workflow, just report status
+
+      - name: Quality Gate Summary
+        if: always()
+        run: |
+          echo "### SonarCloud Quality Gate" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results: https://sonarcloud.io/project/overview?id=williaby_cookiecutter-python-template" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Metrics analyzed:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Quality (bugs, code smells, maintainability)" >> $GITHUB_STEP_SUMMARY
+          echo "- Security (vulnerabilities, security hotspots)" >> $GITHUB_STEP_SUMMARY
+          echo "- Test Coverage (hook files)" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Duplication" >> $GITHUB_STEP_SUMMARY
+          echo "- Technical Debt" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarcloud-reports
+          path: |
+            coverage.xml
+            .coverage
+            ruff-report.json
+            mypy-report.xml
+          retention-days: 7

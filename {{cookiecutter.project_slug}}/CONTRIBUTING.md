@@ -138,42 +138,25 @@ All contributions MUST meet these requirements:
 
 ### Formatting
 
-{%- if cookiecutter.use_ruff == "yes" %}
 - **Tool**: Ruff
 - **Line Length**: 88 characters
 - **Indentation**: 4 spaces (no tabs)
 - **Imports**: Sorted with Ruff
 - **Quotes**: Double quotes for strings
 - **Verification**: `uv run ruff format src tests`
-{%- else %}
-- **Tool**: Black
-- **Line Length**: 88 characters
-- **Indentation**: 4 spaces (no tabs)
-- **Verification**: `uv run black src tests`
-{%- endif %}
 
 ### Linting
 
-{%- if cookiecutter.use_ruff == "yes" %}
 - **Tool**: Ruff with project configuration
 - **Rules**: Comprehensive rule set (see `pyproject.toml`)
 - **Auto-fix**: `uv run ruff check --fix src tests`
 - **Verification**: `uv run ruff check src tests`
-{%- else %}
-- **Tool**: Pylint or similar
-- **Verification**: Run configured linter
-{%- endif %}
 
 ### Type Checking
 
-{%- if cookiecutter.use_mypy == "yes" %}
 - **Tool**: MyPy strict mode for `src/`
 - **Coverage**: All public functions must have type hints
 - **Verification**: `uv run mypy src`
-{%- else %}
-- **Tool**: Type hints recommended
-- **Coverage**: Add type hints for clarity
-{%- endif %}
 
 ### Security
 

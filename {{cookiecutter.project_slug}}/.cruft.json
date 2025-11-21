@@ -1,9 +1,0 @@
-{
-  "template": "{{ cookiecutter._template }}",
-  "commit": "{{ cookiecutter._commit }}",
-  "checkout": null,
-  "context": {
-    "cookiecutter": {{ cookiecutter | jsonify }}
-  },
-  "directory": null
-}

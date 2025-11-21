@@ -7,27 +7,25 @@ statistical validation of the 70% token reduction goal.
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import sqlite3
 import statistics
-from collections import defaultdict, deque
-from dataclasses import dataclass, field, asdict
+from collections import deque
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 from scipy import stats
-
 from src.core.token_optimization_monitor import (
     TokenOptimizationMonitor,
-    TokenUsageMetrics,
-    FunctionTier,
-    OptimizationStatus
 )
 from src.utils.observability import create_structured_logger
+
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +64,8 @@ class MetricPoint:
     timestamp: datetime
     metric_name: str
     value: float
-    labels: Dict[str, str] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -81,7 +79,7 @@ class AggregatedMetric:
     aggregation_type: MetricAggregationType
     value: float
     sample_count: int
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -95,8 +93,8 @@ class TrendAnalysis:
     slope: float
     r_squared: float
     statistical_significance: bool
-    confidence_interval: Tuple[float, float]
-    predicted_values: List[float]
+    confidence_interval: tuple[float, float]
+    predicted_values: list[float]
 
 
 @dataclass
@@ -111,13 +109,13 @@ class ValidationResult:
     sample_size: int
     statistical_power: float
     evidence_strength: str  # "weak", "moderate", "strong", "very_strong"
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
 
 class MetricsDatabase:
     """SQLite database for persistent metrics storage."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         self.db_path = db_path or Path("metrics.db")
         self.logger = create_structured_logger("metrics_database")
         self._initialize_database()
@@ -245,7 +243,7 @@ class MetricsDatabase:
             self.logger.error(f"Failed to store validation result: {e}")
 
     async def get_metric_points(self, metric_name: str, start_time: datetime,
-                              end_time: datetime, labels: Optional[Dict[str, str]] = None) -> List[MetricPoint]:
+                              end_time: datetime, labels: dict[str, str] | None = None) -> list[MetricPoint]:
         """Retrieve metric points from the database."""
 
         query = """
@@ -258,7 +256,7 @@ class MetricsDatabase:
         if labels:
             # Simple label filtering (in production, use proper JSON queries)
             query += " AND labels LIKE ?"
-            params.append(f"%{list(labels.items())[0][0]}%")
+            params.append(f"%{next(iter(labels.items()))[0]}%")
 
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -289,8 +287,8 @@ class MetricsAggregator:
 
     async def aggregate_metrics(self, metric_name: str, time_window: TimeWindow,
                               start_time: datetime, end_time: datetime,
-                              aggregation_types: List[MetricAggregationType],
-                              labels: Optional[Dict[str, str]] = None) -> List[AggregatedMetric]:
+                              aggregation_types: list[MetricAggregationType],
+                              labels: dict[str, str] | None = None) -> list[AggregatedMetric]:
         """Aggregate metrics over specified time windows."""
 
         # Get raw metric points
@@ -346,8 +344,8 @@ class MetricsAggregator:
 
         return durations[time_window]
 
-    def _group_points_by_windows(self, points: List[MetricPoint], window_duration: timedelta,
-                                start_time: datetime, end_time: datetime) -> List[Tuple[datetime, datetime, List[MetricPoint]]]:
+    def _group_points_by_windows(self, points: list[MetricPoint], window_duration: timedelta,
+                                start_time: datetime, end_time: datetime) -> list[tuple[datetime, datetime, list[MetricPoint]]]:
         """Group metric points into time windows."""
 
         windows = []
@@ -366,7 +364,7 @@ class MetricsAggregator:
 
         return windows
 
-    def _calculate_aggregation(self, values: List[float], agg_type: MetricAggregationType) -> float:
+    def _calculate_aggregation(self, values: list[float], agg_type: MetricAggregationType) -> float:
         """Calculate aggregated value based on aggregation type."""
 
         if not values:
@@ -402,7 +400,7 @@ class TrendAnalyzer:
         self.logger = create_structured_logger("trend_analyzer")
 
     async def analyze_trend(self, metric_name: str, time_period: timedelta,
-                          end_time: Optional[datetime] = None) -> TrendAnalysis:
+                          end_time: datetime | None = None) -> TrendAnalysis:
         """Analyze trend for a metric over a specified time period."""
 
         if end_time is None:
@@ -464,7 +462,7 @@ class TrendAnalyzer:
         )
 
     async def detect_anomalies(self, metric_name: str, time_period: timedelta,
-                             sensitivity: float = 2.0) -> List[MetricPoint]:
+                             sensitivity: float = 2.0) -> list[MetricPoint]:
         """Detect anomalies in metric values using statistical methods."""
 
         end_time = datetime.now()
@@ -566,7 +564,7 @@ class StatisticalValidator:
         await self.database.store_validation_result(result)
         return result
 
-    async def validate_performance_claims(self) -> List[ValidationResult]:
+    async def validate_performance_claims(self) -> list[ValidationResult]:
         """Validate multiple performance claims."""
 
         claims_to_validate = [
@@ -683,14 +681,10 @@ class StatisticalValidator:
         """Determine evidence strength based on statistical measures."""
 
         # Cohen's conventions for effect size
-        if effect_size < 0.2:
-            effect_category = "small"
-        elif effect_size < 0.5:
-            effect_category = "medium"
-        elif effect_size < 0.8:
-            effect_category = "large"
+        if effect_size < 0.2 or effect_size < 0.5 or effect_size < 0.8:
+            pass
         else:
-            effect_category = "very_large"
+            pass
 
         # Overall strength assessment
         if p_value > 0.05:
@@ -715,7 +709,7 @@ class StatisticalValidator:
 class MetricsCollector:
     """Main metrics collection orchestrator."""
 
-    def __init__(self, monitor: TokenOptimizationMonitor, db_path: Optional[Path] = None):
+    def __init__(self, monitor: TokenOptimizationMonitor, db_path: Path | None = None):
         self.monitor = monitor
         self.database = MetricsDatabase(db_path)
         self.aggregator = MetricsAggregator(self.database)
@@ -728,8 +722,8 @@ class MetricsCollector:
         self.aggregation_interval = 300.0  # 5 minutes
 
         # Background tasks
-        self._collection_task: Optional[asyncio.Task] = None
-        self._aggregation_task: Optional[asyncio.Task] = None
+        self._collection_task: asyncio.Task | None = None
+        self._aggregation_task: asyncio.Task | None = None
 
         # Metrics buffer
         self.metrics_buffer: deque = deque(maxlen=1000)
@@ -757,10 +751,8 @@ class MetricsCollector:
         # Wait for tasks to complete
         for task in [self._collection_task, self._aggregation_task]:
             if task:
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await task
-                except asyncio.CancelledError:
-                    pass
 
         self.logger.info("Stopped metrics collection")
 
@@ -905,7 +897,7 @@ class MetricsCollector:
                 except Exception as e:
                     self.logger.error(f"Failed to aggregate {metric_name} for {time_window}: {e}")
 
-    async def generate_comprehensive_report(self, time_period: timedelta = timedelta(days=7)) -> Dict[str, Any]:
+    async def generate_comprehensive_report(self, time_period: timedelta = timedelta(days=7)) -> dict[str, Any]:
         """Generate comprehensive metrics report."""
 
         current_time = datetime.now()
@@ -939,7 +931,7 @@ class MetricsCollector:
             "validation_results": {
                 "token_reduction_claim": asdict(token_reduction_validation),
                 "performance_claims": [asdict(result) for result in validation_results],
-                "overall_validation_status": all(result.validated for result in validation_results + [token_reduction_validation])
+                "overall_validation_status": all(result.validated for result in [*validation_results, token_reduction_validation])
             },
             "trend_analysis": trend_analyses,
             "anomaly_detection": anomalies,
@@ -953,14 +945,14 @@ class MetricsCollector:
                 },
                 "confidence_intervals": {
                     result.claim.split(":")[0]: result.confidence_level
-                    for result in validation_results + [token_reduction_validation]
+                    for result in [*validation_results, token_reduction_validation]
                 }
             }
         }
 
         return report
 
-    async def export_for_external_analysis(self, format: str = "json") -> Dict[str, Any]:
+    async def export_for_external_analysis(self, format: str = "json") -> dict[str, Any]:
         """Export metrics data for external analysis tools."""
 
         report = await self.generate_comprehensive_report()
@@ -980,7 +972,7 @@ class MetricsCollector:
 
 
 # Global metrics collector instance
-_global_collector: Optional[MetricsCollector] = None
+_global_collector: MetricsCollector | None = None
 
 
 def get_metrics_collector() -> MetricsCollector:

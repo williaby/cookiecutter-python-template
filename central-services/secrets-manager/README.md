@@ -23,10 +23,10 @@ Replace `.env` files and hardcoded secrets with secure, audited secret managemen
 **MIGRATE ALL SENSITIVE VALUES**:
 ```bash
 # DON'T KEEP IN .env (migrate to Vault)
-DATABASE_URL=postgresql://user:password@host/db  # ← MOVE TO VAULT
-API_KEY=sk-1234567890  # ← MOVE TO VAULT
-JWT_SECRET_KEY=super-secret  # ← MOVE TO VAULT
-SENTRY_DSN=https://key@sentry.io/project  # ← MOVE TO VAULT
+DATABASE_URL=postgresql://user:REDACTED@host/db  # ← MOVE TO VAULT
+API_KEY=<YOUR_API_KEY_HERE>  # ← MOVE TO VAULT
+JWT_SECRET_KEY=<YOUR_SECRET_KEY_HERE>  # ← MOVE TO VAULT
+SENTRY_DSN=https://<KEY>@sentry.io/<PROJECT>  # ← MOVE TO VAULT
 
 # OK TO KEEP IN .env (non-sensitive)
 LOG_LEVEL=INFO

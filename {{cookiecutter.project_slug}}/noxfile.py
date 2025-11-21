@@ -312,11 +312,7 @@ def typecheck(session: nox.Session) -> None:
     across all supported Python versions.
     """
     session.install("-e", ".[dev]")
-    {% if cookiecutter.use_mypy == "yes" %}
     session.run("mypy", "src", "--config-file=pyproject.toml")
-    {% else %}
-    session.log("MyPy type checking is disabled in this project")
-    {% endif %}
 {%- else %}
 """Nox sessions - NOT CONFIGURED
 

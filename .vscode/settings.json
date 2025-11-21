@@ -1,6 +1,6 @@
 {
   "sonarlint.connectedMode.project": {
-    "connectionId": "williaby",
-    "projectKey": "williaby_cookiecutter-python-template"
+    "connectionId": "byronwilliamscpa",
+    "projectKey": "ByronWilliamsCPA_cookiecutter-python-template"
   }
 }

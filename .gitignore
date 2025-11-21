@@ -1,1 +1,8 @@
 __pycache__/
+
+# Temporary reference files (Anti-compaction strategy)
+tmp_cleanup/
+.tmp-*
+
+# Zen MCP Server data (should live in ~/.zen-mcp, not in repos)
+data/promptcraft/

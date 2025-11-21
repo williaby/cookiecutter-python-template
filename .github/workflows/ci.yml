@@ -12,21 +12,16 @@
 #   Layer 1: Production Runtime Risks (RAD tags)
 #   Layer 2: LLM Development Debt (LLM tags)
 #   Layer 3: Automated Code Quality (SonarQube)
-{% if cookiecutter.include_github_actions == "yes" -%}
+
 name: CI
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, develop]
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main, master, develop]
+    branches: [main, develop]
   workflow_dispatch:
-
-# Cancel in-progress runs for same PR/branch
-concurrency:
-  group: {% raw %}${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}{% endraw %}
-  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -34,7 +29,7 @@ permissions:
   checks: write
 
 env:
-  PYTHON_VERSION: '{{ cookiecutter.python_version }}'
+  PYTHON_VERSION: '3.12'
 
 jobs:
   # ============================================================================
@@ -43,7 +38,7 @@ jobs:
   quality-checks:
     name: Code Quality Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -51,23 +46,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
       - name: Set up Python
-        run: uv python install {% raw %}${{ env.PYTHON_VERSION }}{% endraw %}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
-          uv sync --all-extras
+          python -m pip install --upgrade pip
+          pip install cookiecutter black ruff mypy pytest pytest-cov bandit safety
 
-      - name: Run Ruff formatter check
+      - name: Run Black formatter check
         run: |
-          echo "::group::Ruff Formatting"
-          uv run ruff format --check src/ tests/ || {
-            echo "::error::Code formatting issues detected. Run 'uv run ruff format src/ tests/' to fix."
+          echo "::group::Black Formatting"
+          black --check --diff hooks/ || {
+            echo "::error::Code formatting issues detected. Run 'black hooks/' to fix."
             exit 1
           }
           echo "::endgroup::"
@@ -75,13 +69,13 @@ jobs:
       - name: Run Ruff linter
         run: |
           echo "::group::Ruff Linting"
-          uv run ruff check src/ tests/ --output-format=github
+          ruff check hooks/ --output-format=github
           echo "::endgroup::"
 
       - name: Run MyPy type checker
         run: |
           echo "::group::MyPy Type Checking"
-          uv run mypy src/ --ignore-missing-imports --no-error-summary || {
+          mypy hooks/ --ignore-missing-imports --no-error-summary || {
             echo "::warning::Type checking found issues"
           }
           echo "::endgroup::"
@@ -89,20 +83,25 @@ jobs:
       - name: Run tests with coverage
         run: |
           echo "::group::Test Execution"
-          uv run pytest \
-            --cov=src \
-            --cov-report=xml:coverage.xml \
-            --cov-report=term-missing \
-            --cov-report=html \
-            --cov-branch \
-            --cov-fail-under={{ cookiecutter.code_coverage_target }} \
-            -v
+          if [ -d "tests" ]; then
+            pytest \
+              --cov=hooks \
+              --cov-report=xml:coverage.xml \
+              --cov-report=term-missing \
+              --cov-report=html \
+              --cov-branch \
+              --cov-fail-under=80 \
+              -v
+          else
+            echo "::warning::No tests directory found"
+            echo '<?xml version="1.0" ?><coverage version="1.0"></coverage>' > coverage.xml
+          fi
           echo "::endgroup::"
 
       - name: Security scan with Bandit
         run: |
           echo "::group::Bandit Security Scan"
-          uv run bandit -r src/ -f json -o bandit-report.json || {
+          bandit -r hooks/ -f json -o bandit-report.json || {
             echo "::warning::Security issues detected"
             cat bandit-report.json
           }
@@ -111,9 +110,7 @@ jobs:
       - name: Dependency vulnerability scan
         run: |
           echo "::group::Safety Dependency Scan"
-          # Export requirements and scan
-          uv pip compile pyproject.toml -o requirements.txt
-          uv run safety check -r requirements.txt || {
+          pip freeze | safety check --stdin || {
             echo "::warning::Vulnerable dependencies detected"
           }
           echo "::endgroup::"
@@ -126,18 +123,6 @@ jobs:
             coverage.xml
             htmlcov/
           retention-days: 7
-
-      {% if cookiecutter.include_codecov == "yes" -%}
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
-      {% endif -%}
 
   # ============================================================================
   # Job 2: LLM Governance Checks
@@ -156,7 +141,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: {% raw %}${{ env.PYTHON_VERSION }}{% endraw %}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Check for unverified assumption tags
         id: check-tags
@@ -164,17 +149,17 @@ jobs:
           echo "::group::Scanning for Unverified Assumption Tags"
 
           # Check for RAD tags (Layer 1: Production Runtime Risks)
-          CRITICAL_TAGS=$(grep -r "#CRITICAL" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
-          ASSUME_TAGS=$(grep -r "#ASSUME" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
-          EDGE_TAGS=$(grep -r "#EDGE" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
+          CRITICAL_TAGS=$(grep -r "#CRITICAL" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
+          ASSUME_TAGS=$(grep -r "#ASSUME" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
+          EDGE_TAGS=$(grep -r "#EDGE" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
 
           # Check for LLM debt tags (Layer 2: LLM Development Debt)
-          LLM_MOCK=$(grep -r "#LLM-MOCK" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
-          LLM_PLACEHOLDER=$(grep -r "#LLM-PLACEHOLDER" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
-          LLM_LOGIC=$(grep -r "#LLM-LOGIC" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
-          LLM_SCAFFOLD=$(grep -r "#LLM-SCAFFOLD" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
-          LLM_INFERRED=$(grep -r "#LLM-INFERRED" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
-          LLM_TEST_FIRST=$(grep -r "#LLM-TEST-FIRST" --include="*.py" src/ 2>/dev/null | wc -l || echo "0")
+          LLM_MOCK=$(grep -r "#LLM-MOCK" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
+          LLM_PLACEHOLDER=$(grep -r "#LLM-PLACEHOLDER" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
+          LLM_LOGIC=$(grep -r "#LLM-LOGIC" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
+          LLM_SCAFFOLD=$(grep -r "#LLM-SCAFFOLD" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
+          LLM_INFERRED=$(grep -r "#LLM-INFERRED" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
+          LLM_TEST_FIRST=$(grep -r "#LLM-TEST-FIRST" --include="*.py" hooks/ 2>/dev/null | wc -l || echo "0")
 
           TOTAL_RAD=$((CRITICAL_TAGS + ASSUME_TAGS))
           TOTAL_LLM=$((LLM_MOCK + LLM_PLACEHOLDER + LLM_LOGIC + LLM_SCAFFOLD + LLM_INFERRED + LLM_TEST_FIRST))
@@ -214,10 +199,10 @@ jobs:
       - name: Block PR if critical tags found
         if: steps.check-tags.outputs.rad_tags > 0
         run: |
-          echo "::error::❌ PR blocked: Found {% raw %}${{ steps.check-tags.outputs.rad_tags }}{% endraw %} unverified production risk tags"
+          echo "::error::❌ PR blocked: Found ${{ steps.check-tags.outputs.rad_tags }} unverified production risk tags"
           echo ""
           echo "Please verify and remove these tags before merging:"
-          grep -rn "#CRITICAL\|#ASSUME" --include="*.py" src/ || true
+          grep -rn "#CRITICAL\|#ASSUME" --include="*.py" hooks/ || true
           echo ""
           echo "See CLAUDE.md for verification workflow"
           exit 1
@@ -228,14 +213,14 @@ jobs:
 
           # Hardcoded localhost/URLs
           echo "Checking for hardcoded localhost/URLs..."
-          if grep -rE "(localhost|127\.0\.0\.1|http://|https://)" --include="*.py" src/ | \
+          if grep -rE "(localhost|127\.0\.0\.1|http://|https://)" --include="*.py" hooks/ | \
              grep -v "#LLM-PLACEHOLDER" | grep -v "^[[:space:]]*#"; then
             echo "::warning::Found hardcoded URLs without #LLM-PLACEHOLDER tag"
           fi
 
           # Hardcoded secrets patterns
           echo "Checking for potential hardcoded secrets..."
-          if grep -rE "(api_key|password|secret|token)\s*=\s*[\"'][^\"']+[\"']" --include="*.py" src/ | \
+          if grep -rE "(api_key|password|secret|token)\s*=\s*[\"'][^\"']+[\"']" --include="*.py" hooks/ | \
              grep -v "#LLM-PLACEHOLDER" | grep -v "^[[:space:]]*#"; then
             echo "::error::Potential hardcoded secret detected"
             exit 1
@@ -243,7 +228,7 @@ jobs:
 
           # Magic numbers
           echo "Checking for magic numbers..."
-          MAGIC_NUMBERS=$(grep -rE "\b[0-9]{2,}\b" --include="*.py" src/ | \
+          MAGIC_NUMBERS=$(grep -rE "\b[0-9]{2,}\b" --include="*.py" hooks/ | \
                           grep -v "#LLM-PLACEHOLDER" | \
                           grep -v "^[[:space:]]*#" | \
                           wc -l || echo "0")
@@ -254,7 +239,6 @@ jobs:
 
           echo "::endgroup::"
 
-  {% if cookiecutter.include_sonarcloud == "yes" -%}
   # ============================================================================
   # Job 3: SonarQube Quality Gate (Enhanced with LLM Governance)
   # ============================================================================
@@ -278,21 +262,21 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-          SONAR_TOKEN: {% raw %}${{ secrets.SONAR_TOKEN }}{% endraw %}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Wait for Quality Gate
         uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
-          SONAR_TOKEN: {% raw %}${{ secrets.SONAR_TOKEN }}{% endraw %}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         id: quality-gate
 
       - name: Quality Gate Result
         run: |
           echo "::group::Quality Gate Status"
-          echo "Quality Gate Status: {% raw %}${{ steps.quality-gate.outputs.quality-gate-status }}{% endraw %}"
-          echo "View detailed results: https://sonarcloud.io/project/overview?id={{ cookiecutter.github_org_or_user }}_{{ cookiecutter.project_slug }}"
+          echo "Quality Gate Status: ${{ steps.quality-gate.outputs.quality-gate-status }}"
+          echo "View detailed results: https://sonarcloud.io/project/overview?id=williaby_cookiecutter-python-template"
           echo "::endgroup::"
 
       - name: Block PR if quality gate fails
@@ -301,9 +285,9 @@ jobs:
           echo "::error::❌ Quality Gate FAILED"
           echo ""
           echo "SonarQube quality gate did not pass. Please fix the issues:"
-          echo "- Review issues at: https://sonarcloud.io/project/overview?id={{ cookiecutter.github_org_or_user }}_{{ cookiecutter.project_slug }}"
+          echo "- Review issues at: https://sonarcloud.io/project/overview?id=williaby_cookiecutter-python-template"
           echo "- Fix all BLOCKER and CRITICAL issues"
-          echo "- Ensure test coverage ≥ {{ cookiecutter.code_coverage_target }}%"
+          echo "- Ensure test coverage ≥ 80%"
           echo "- Reduce code duplication"
           exit 1
 
@@ -314,19 +298,19 @@ jobs:
           ## 🎯 Three-Layer Governance Report
 
           ### Layer 1: Production Runtime Risks (RAD)
-          - #CRITICAL tags: {% raw %}${{ steps.check-tags.outputs.rad_tags > 0 && '❌ FOUND' || '✅ None' }}{% endraw %}
-          - Status: {% raw %}${{ steps.check-tags.outputs.rad_tags > 0 && '**BLOCKED**' || '**PASSED**' }}{% endraw %}
+          - #CRITICAL tags: ${{ steps.check-tags.outputs.rad_tags > 0 && '❌ FOUND' || '✅ None' }}
+          - Status: ${{ steps.check-tags.outputs.rad_tags > 0 && '**BLOCKED**' || '**PASSED**' }}
 
           ### Layer 2: LLM Development Debt
-          - LLM debt tags: {% raw %}${{ steps.check-tags.outputs.llm_tags > 0 && '⚠️ FOUND' || '✅ None' }}{% endraw %}
-          - Status: {% raw %}${{ steps.check-tags.outputs.llm_tags > 0 && '**WARNING**' || '**PASSED**' }}{% endraw %}
+          - LLM debt tags: ${{ steps.check-tags.outputs.llm_tags > 0 && '⚠️ FOUND' || '✅ None' }}
+          - Status: ${{ steps.check-tags.outputs.llm_tags > 0 && '**WARNING**' || '**PASSED**' }}
 
           ### Layer 3: Automated Code Quality (SonarQube)
-          - Quality Gate: {% raw %}${{ steps.quality-gate.outputs.quality-gate-status }}{% endraw %}
-          - Status: {% raw %}${{ steps.quality-gate.outputs.quality-gate-status == 'PASSED' && '**PASSED**' || '**FAILED**' }}{% endraw %}
+          - Quality Gate: ${{ steps.quality-gate.outputs.quality-gate-status }}
+          - Status: ${{ steps.quality-gate.outputs.quality-gate-status == 'PASSED' && '**PASSED**' || '**FAILED**' }}
 
           ### Overall Status
-          {% raw %}${{ (steps.check-tags.outputs.rad_tags > 0 || steps.quality-gate.outputs.quality-gate-status == 'FAILED') && '❌ **PR BLOCKED** - Fix issues before merging' || '✅ **READY TO MERGE**' }}{% endraw %}
+          ${{ (steps.check-tags.outputs.rad_tags > 0 || steps.quality-gate.outputs.quality-gate-status == 'FAILED') && '❌ **PR BLOCKED** - Fix issues before merging' || '✅ **READY TO MERGE**' }}
 
           ---
 
@@ -336,7 +320,71 @@ jobs:
           - Ensure quality gate passes
           - Review SonarQube findings
           EOF
-  {% endif -%}
+
+  # ============================================================================
+  # Job 4: Template Validation
+  # ============================================================================
+  validate-template:
+    name: Validate Cookiecutter Template
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install cookiecutter
+        run: |
+          pip install cookiecutter
+
+      - name: Generate test project
+        run: |
+          echo "::group::Template Generation Test"
+          cd /tmp
+          cookiecutter --no-input /home/runner/work/cookiecutter-python-template/cookiecutter-python-template
+          echo "✓ Template generated successfully"
+          ls -la my_project/
+          echo "::endgroup::"
+
+      - name: Validate generated project structure
+        run: |
+          echo "::group::Structure Validation"
+          cd /tmp/my_project
+
+          # Check key files exist
+          test -f README.md || { echo "::error::README.md missing"; exit 1; }
+          test -f pyproject.toml || { echo "::error::pyproject.toml missing"; exit 1; }
+          test -f CLAUDE.md || { echo "::error::CLAUDE.md missing"; exit 1; }
+          test -d src || { echo "::error::src/ directory missing"; exit 1; }
+          test -d tests || { echo "::error::tests/ directory missing"; exit 1; }
+
+          echo "✓ All key files and directories present"
+          echo "::endgroup::"
+
+      - name: Check for LLM governance in generated project
+        run: |
+          echo "::group::LLM Governance Validation"
+          cd /tmp/my_project
+
+          if grep -q "LLM Development Governance" CLAUDE.md; then
+            echo "✓ LLM Governance section found in CLAUDE.md"
+          else
+            echo "::error::LLM Governance section missing from generated CLAUDE.md"
+            exit 1
+          fi
+
+          if grep -q "#LLM-MOCK\|#LLM-PLACEHOLDER\|#CRITICAL" CLAUDE.md; then
+            echo "✓ LLM governance tags documented"
+          else
+            echo "::warning::LLM governance tags not fully documented"
+          fi
+
+          echo "::endgroup::"
 
   # ============================================================================
   # Summary Job
@@ -344,7 +392,7 @@ jobs:
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [quality-checks, llm-governance{% if cookiecutter.include_sonarcloud == "yes" %}, sonarqube-quality-gate{% endif %}]
+    needs: [quality-checks, llm-governance, sonarqube-quality-gate, validate-template]
     if: always()
 
     steps:
@@ -355,9 +403,7 @@ jobs:
           echo "All governance layers checked:" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Code Quality Checks" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ LLM Governance Validation" >> $GITHUB_STEP_SUMMARY
-          {% if cookiecutter.include_sonarcloud == "yes" -%}
           echo "- ✅ SonarQube Quality Gate" >> $GITHUB_STEP_SUMMARY
-          {% endif -%}
+          echo "- ✅ Template Validation" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status: {% raw %}${{ job.status }}{% endraw %}**" >> $GITHUB_STEP_SUMMARY
-{% endif -%}
+          echo "**Status: ${{ job.status }}**" >> $GITHUB_STEP_SUMMARY

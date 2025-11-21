@@ -106,10 +106,10 @@ from api_clients import BaseAPIClient
 
 class MyServiceClient(BaseAPIClient):
     base_url = "https://api.example.com"
-    
+
     async def get_user(self, user_id: str) -> dict:
         return await self.get(f"/users/{user_id}")
-    
+
     # Built-in: retries, circuit breaker, caching, auth, timeouts
 ```
 

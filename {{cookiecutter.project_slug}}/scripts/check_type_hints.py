@@ -184,6 +184,11 @@ def add_future_import(file_path: Path) -> bool:
             lines.insert(insert_index, import_line)
             lines.insert(insert_index + 1, "\n")
 
+        # Security: Validate file path is within expected directory
+        if not file_path.resolve().is_relative_to(Path.cwd()):
+            print(f"Security: Path {file_path} is outside current directory", file=sys.stderr)
+            return False
+
         file_path.write_text("".join(lines), encoding="utf-8")
         return True
     except Exception as e:

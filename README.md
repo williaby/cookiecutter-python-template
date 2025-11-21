@@ -1,5 +1,12 @@
 # Cookiecutter Python Template
 
+[![Validate Template](https://github.com/williaby/cookiecutter-python-template/actions/workflows/validate-template.yml/badge.svg)](https://github.com/williaby/cookiecutter-python-template/actions/workflows/validate-template.yml)
+[![SonarCloud](https://github.com/williaby/cookiecutter-python-template/actions/workflows/sonarcloud.yml/badge.svg)](https://github.com/williaby/cookiecutter-python-template/actions/workflows/sonarcloud.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=williaby_cookiecutter-python-template&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=williaby_cookiecutter-python-template)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=williaby_cookiecutter-python-template&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=williaby_cookiecutter-python-template)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=williaby_cookiecutter-python-template&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=williaby_cookiecutter-python-template)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=williaby_cookiecutter-python-template&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=williaby_cookiecutter-python-template)
+
 This folder contains a complete, production-ready cookiecutter template for starting new Python projects.
 
 ## 📦 What's Inside
@@ -198,6 +205,7 @@ Complete project structure with:
 - ✅ **Ruff** consolidated linting
 - ✅ **MyPy** strict type checking
 - ✅ **pytest** with 80% coverage target
+- ✅ **SonarCloud** continuous code quality and security analysis (optional)
 - ✅ **Pre-commit hooks** (9+ automated checks)
 - ✅ **Mutation testing** with mutmut
 
@@ -274,6 +282,77 @@ my_awesome_project/
 ├── .cruft.json          # Template tracking (cruft only)
 └── README.md
 ```
+
+## 🔍 SonarCloud Setup (Optional)
+
+Both this template repository and generated projects support SonarCloud for continuous code quality and security analysis.
+
+### For Template Repository (This Repo)
+
+The template repository itself is configured with SonarCloud to analyze hooks and template files:
+
+1. **Project Already Created**: `williaby_cookiecutter-python-template`
+2. **Token Configured**: `SONAR_TOKEN` secret added to GitHub organization
+3. **Workflow Enabled**: `.github/workflows/sonarcloud.yml` runs on push/PR
+4. **Dashboard**: [View SonarCloud Dashboard](https://sonarcloud.io/project/overview?id=williaby_cookiecutter-python-template)
+
+### For Generated Projects
+
+When creating a new project with `include_sonarcloud=yes`, you need to:
+
+1. **Create SonarCloud Project**:
+   - Go to [SonarCloud](https://sonarcloud.io)
+   - Click "+" → "Analyze new project"
+   - Select your GitHub repository
+   - Choose your organization (e.g., `williaby`)
+   - Project key will be: `{github_org}_{project_slug}`
+
+2. **Configure GitHub Secret**:
+   - If using organization-level token (recommended):
+     - Already configured as `SONAR_TOKEN` in organization secrets
+     - No additional action needed
+   - If using repository-level token:
+     - Go to repository Settings → Secrets and variables → Actions
+     - Add secret: `SONAR_TOKEN` with your SonarCloud token
+
+3. **Verify Configuration**:
+
+   ```bash
+   # After project generation
+   cd your-project
+
+   # Check workflow exists
+   ls .github/workflows/sonarcloud.yml
+
+   # Check configuration
+   cat sonar-project.properties
+   ```
+
+4. **First Analysis**:
+   - Push code to GitHub (main branch or PR)
+   - SonarCloud workflow runs automatically
+   - View results in [SonarCloud Dashboard](https://sonarcloud.io)
+
+### SonarCloud Features
+
+Generated projects include:
+
+- **Quality Gate Enforcement**: Fails if code doesn't meet quality standards
+- **PR Decoration**: Shows issues directly in pull requests
+- **Coverage Tracking**: Integrates pytest coverage reports
+- **Security Analysis**: Detects vulnerabilities and security hotspots
+- **Code Smells**: Identifies maintainability issues
+- **Technical Debt**: Quantifies effort to fix issues
+
+### Analysis Method
+
+Both template and generated projects use **CI-Based Analysis** (not Automatic):
+
+- ✅ Full Python language support
+- ✅ Test coverage integration
+- ✅ Quality gate enforcement
+- ✅ Branch analysis and PR decoration
+- ✅ Comprehensive metrics (security, maintainability, reliability)
 
 ## 🤖 Claude Code Integration
 

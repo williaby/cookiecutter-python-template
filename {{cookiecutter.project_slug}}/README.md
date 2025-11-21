@@ -1,7 +1,5 @@
 # {{cookiecutter.project_name}}
 
-{%- if cookiecutter.include_security_scanning == "yes" %}
-
 ## Status & Quality
 
 [![Python {{cookiecutter.python_version}}](https://img.shields.io/badge/python-{{cookiecutter.python_version}}-blue.svg)](https://www.python.org/downloads/)
@@ -10,14 +8,17 @@
 {%- if cookiecutter.include_codecov == "yes" %}
 [![codecov](https://codecov.io/gh/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/graph/badge.svg)](https://codecov.io/gh/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}})
 {%- endif %}
+{%- if cookiecutter.include_sonarcloud == "yes" %}
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}}&metric=alert_status)](https://sonarcloud.io/summary/new_code?id={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}})
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}}&metric=security_rating)](https://sonarcloud.io/summary/new_code?id={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}})
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}}&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}})
+{%- endif %}
 {%- if cookiecutter.include_github_actions == "yes" %}
 
 [![CI Pipeline](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/ci.yml)
 [![Security Analysis](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/security-analysis.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/security-analysis.yml)
 {%- endif %}
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/{{ cookiecutter.github_org_or_user }}/.github/blob/main/CODE_OF_CONDUCT.md)
-
-{%- endif %}
 
 ---
 
@@ -237,6 +238,40 @@ All code must meet these requirements:
 - **Documentation**: Docstrings on all public APIs
 
 **Unified Quality Tool**: This project uses [Qlty](https://qlty.sh) to consolidate all quality checks into a single fast tool. See [`.qlty/qlty.toml`](.qlty/qlty.toml) for configuration.
+
+### Claude Code Standards
+
+This project includes standardized Claude Code configuration via git subtree:
+
+**Directory Structure**:
+```
+.claude/
+├── claude.md          # Project-specific Claude guidelines
+└── standard/          # Standard Claude configuration (git subtree)
+    ├── CLAUDE.md      # Universal development standards
+    ├── commands/      # Custom slash commands
+    ├── skills/        # Reusable skills
+    └── agents/        # Specialized agents
+```
+
+**Updating Standards**:
+```bash
+# Pull latest standards from upstream
+./scripts/update-claude-standards.sh
+
+# Or manually
+git subtree pull --prefix .claude/standard \
+    https://github.com/williaby/.claude.git main --squash
+```
+
+**What's Included**:
+- Universal development best practices
+- Response-Aware Development (RAD) system for assumption tagging
+- Agent assignment patterns and workflow
+- Security requirements and pre-commit standards
+- Git workflow and commit conventions
+
+**Project-Specific Overrides**: Edit `.claude/claude.md` for project-specific guidelines. See [`.claude/README.md`](.claude/README.md) for details.
 
 ### Running Tests
 

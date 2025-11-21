@@ -51,8 +51,8 @@ This project uses **org-level reusable workflows** for consistency and maintaina
 Comprehensive CI with:
 - Multi-version Python testing ({{ cookiecutter.python_version }})
 - UV dependency management
-- Ruff linting and formatting{% if cookiecutter.use_mypy == "yes" %}
-- MyPy type checking (strict mode){% endif %}
+- Ruff linting and formatting
+- MyPy type checking (strict mode)
 - Pytest with {{ cookiecutter.code_coverage_target }}%+ coverage{% if cookiecutter.include_codecov == "yes" %}
 - Codecov integration{% endif %}
 
@@ -65,7 +65,7 @@ Comprehensive CI with:
 
 Comprehensive security scanning with:
 - CodeQL advanced analysis
-- Bandit static security analysis  
+- Bandit static security analysis
 - Safety dependency CVE scanning
 - OSV Scanner
 - OWASP dependency check
@@ -166,7 +166,7 @@ Workflows can be tested locally using [act](https://github.com/nektos/act):
 # Test CI workflow
 act -j ci
 
-# Test security workflow  
+# Test security workflow
 act -j security
 
 # Test with specific event
@@ -207,5 +207,5 @@ act push -j ci
 
 ---
 
-**Last Updated**: {% raw %}{{ cookiecutter.project_name }}{% endraw %} generated from template  
+**Last Updated**: {% raw %}{{ cookiecutter.project_name }}{% endraw %} generated from template
 **Org Workflows Version**: `@main` (auto-updates with org changes)

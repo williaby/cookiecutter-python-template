@@ -130,7 +130,8 @@ def cleanup_conditional_files() -> None:
         # Remove api directory if empty
         api_dir = Path("src/{{ cookiecutter.project_slug }}/api")
         if api_dir.exists() and not any(
-            f.name != "__pycache__" and f.name != "__init__.py" for f in api_dir.iterdir()
+            f.name != "__pycache__" and f.name != "__init__.py"
+            for f in api_dir.iterdir()
         ):
             remove_dir(api_dir)
 
@@ -171,9 +172,7 @@ def cleanup_conditional_files() -> None:
     if "{{ cookiecutter.use_mkdocs }}" == "no":
         remove_file(Path(".github/workflows/docs.yml"))
 
-    # Remove security scanning workflow if not needed
-    if "{{ cookiecutter.include_security_scanning }}" == "no":
-        remove_file(Path(".github/workflows/security-analysis.yml"))
+    # Note: Security scanning workflows (security-analysis.yml) are always included
 
 
 def initialize_git() -> None:
@@ -184,14 +183,83 @@ def initialize_git() -> None:
         print("  ✓ Git repository initialized")
 
         # Create initial commit
-        if run_command(["git", "add", "."], check=False):
-            if run_command(
-                ["git", "commit", "-m", "Initial commit from cookiecutter template"],
-                check=False,
-            ):
-                print("  ✓ Initial commit created")
+        if run_command(["git", "add", "."], check=False) and run_command(
+            ["git", "commit", "-m", "Initial commit from cookiecutter template"],
+            check=False,
+        ):
+            print("  ✓ Initial commit created")
     else:
         print("  ⚠ Git not found - skipping git initialization")
+
+
+def setup_claude_subtree() -> None:
+    """Add the standard .claude repo as a git subtree."""
+    print("\n🔧 Setting up Claude standards subtree...")
+
+    # Check if git is initialized
+    if not Path(".git").exists():
+        print("  ⚠ Git not initialized - skipping Claude standards setup")
+        print("    Run 'git init' and then manually add the subtree:")
+        print("    git subtree add --prefix .claude/standard \\")
+        print("      https://github.com/williaby/.claude.git main --squash")
+        return
+
+    # Check if user wants to add the subtree
+    try:
+        response = (
+            input("\n  Add standard Claude configuration via git subtree? (Y/n): ")
+            .strip()
+            .lower()
+        )
+    except (EOFError, KeyboardInterrupt):
+        print("\n  Skipping Claude standards setup.")
+        return
+
+    # Default to yes if empty response
+    if response in ["", "y", "yes"]:
+        claude_repo = "https://github.com/williaby/.claude.git"
+        subtree_prefix = ".claude/standard"
+
+        print(f"\n  📥 Adding Claude standards from {claude_repo}...")
+
+        # Add the subtree
+        if run_command(
+            [
+                "git",
+                "subtree",
+                "add",
+                "--prefix",
+                subtree_prefix,
+                claude_repo,
+                "main",
+                "--squash",
+            ],
+            check=False,
+        ):
+            print(f"  ✓ Claude standards added to {subtree_prefix}/")
+
+            # Check what was added
+            standard_dir = Path(subtree_prefix)
+            if (standard_dir / "CLAUDE.md").exists():
+                print("  ✓ Standard CLAUDE.md available")
+            if (standard_dir / "commands").exists():
+                print("  ✓ Standard commands available")
+            if (standard_dir / "skills").exists():
+                print("  ✓ Standard skills available")
+
+            print("\n  ✅ Claude standards integrated successfully!")
+            print("\n  To update standards later, run:")
+            print("     ./scripts/update-claude-standards.sh")
+        else:
+            print("  ⚠ Failed to add Claude standards subtree")
+            print("    You can manually add it later with:")
+            print(f"     git subtree add --prefix {subtree_prefix} \\")
+            print(f"       {claude_repo} main --squash")
+    else:
+        print("\n  ℹ Skipping Claude standards setup.")  # noqa: RUF001
+        print("    You can add it later with:")
+        print("     git subtree add --prefix .claude/standard \\")
+        print("       https://github.com/williaby/.claude.git main --squash")
 
 
 def setup_pre_commit() -> None:
@@ -259,7 +327,9 @@ def render_workflow_templates() -> None:
     }
 
     rendered_count = 0
-    workflow_files = list(workflows_dir.glob("*.yml")) + list(workflows_dir.glob("*.yaml"))
+    workflow_files = list(workflows_dir.glob("*.yml")) + list(
+        workflows_dir.glob("*.yaml")
+    )
     workflow_files.append(workflows_dir / "README.md")  # Also render README
 
     for workflow_file in workflow_files:
@@ -273,9 +343,12 @@ def render_workflow_templates() -> None:
             # Replace all cookiecutter variable patterns (with/without spaces)
             for key, value in context.items():
                 # Handle various spacing patterns
-                pattern1 = "{{" + "{{ cookiecutter." + key + " }}}}"
-                pattern2 = "{{" + "{{cookiecutter." + key + "}}}}"
-                pattern3 = "{{" + "{{  cookiecutter." + key + "  }}}}"
+                # Build patterns using separate strings to avoid Jinja2 interpretation
+                open_brace = "{" + "{"
+                close_brace = "}" + "}"
+                pattern1 = open_brace + open_brace + f" cookiecutter.{key} " + close_brace + close_brace
+                pattern2 = open_brace + open_brace + f"cookiecutter.{key}" + close_brace + close_brace
+                pattern3 = open_brace + open_brace + f"  cookiecutter.{key}  " + close_brace + close_brace
                 content = content.replace(pattern1, value)
                 content = content.replace(pattern2, value)
                 content = content.replace(pattern3, value)
@@ -292,7 +365,7 @@ def render_workflow_templates() -> None:
     if rendered_count > 0:
         print(f"  ✓ Rendered {rendered_count} workflow file(s)")
     else:
-        print("  ℹ No unrendered templates found (workflows already rendered)")
+        print("  ℹ No unrendered templates found (workflows already rendered)")  # noqa: RUF001
 
 
 def setup_claude_user_settings() -> None:
@@ -313,7 +386,7 @@ def setup_claude_user_settings() -> None:
             break
 
     if existing_location:
-        print(f"\n  ℹ User-level settings already exist at: {existing_location}")
+        print(f"\n  ℹ User-level settings already exist at: {existing_location}")  # noqa: RUF001
         print("    Skipping setup.")
         return
 
@@ -390,7 +463,7 @@ def setup_claude_user_settings() -> None:
         except (EOFError, KeyboardInterrupt):
             print("\n  Setup cancelled.")
     else:
-        print("\n  ℹ Skipping setup. You can set up user-level settings later by:")
+        print("\n  ℹ Skipping setup. You can set up user-level settings later by:")  # noqa: RUF001
         print("     git clone https://github.com/williaby/.claude ~/.claude")
 
 
@@ -443,7 +516,7 @@ def print_success_message() -> None:
         print("     uv run pre-commit install")
         print("\n  4. Install Qlty CLI for unified code quality:")
         print("     curl https://qlty.sh | bash")
-        print("     # Or on Windows: powershell -c \"iwr https://qlty.sh | iex\"")
+        print('     # Or on Windows: powershell -c "iwr https://qlty.sh | iex"')
 
     print("\n  5. Run tests:")
     print("     uv run pytest -v")
@@ -506,6 +579,7 @@ def main() -> None:
         render_workflow_templates()  # Fix unrendered Jinja2 variables in workflows
         create_initial_directories()
         initialize_git()
+        setup_claude_subtree()  # Add Claude standards via git subtree
         setup_pre_commit()
         setup_claude_user_settings()
         print_success_message()

@@ -48,7 +48,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """Simple in-memory rate limiting middleware."""
     def __init__(self, app: ASGIApp, requests_per_minute: int = 60):
         self.requests: dict[str, list[float]] = defaultdict(list)
-    
+
     async def dispatch(self, request: Request, call_next) -> Response:
         # Track per-IP rate limiting
         # Return 429 if exceeded
@@ -121,11 +121,11 @@ async def send_email_task(
 ) -> dict:
     """Send email asynchronously."""
     logger.info("sending_email", recipient=recipient, subject=subject)
-    
+
     # TODO: Integrate with your email provider
     # Example with SendGrid, AWS SES, etc.
     # await send_email_via_provider(recipient, subject, body)
-    
+
     await asyncio.sleep(1)  # Simulate email sending
     return {"status": "sent", "recipient": recipient, ...}
 ```
@@ -195,13 +195,13 @@ async def process_file_upload(
 ) -> dict:
     """Process uploaded file in background."""
     logger.info("processing_file", file_id=file_id, path=file_path)
-    
+
     try:
         # Example: Read and process file
         # with open(file_path, 'rb') as f:
         #     data = f.read()
         #     # Process data...
-        
+
         await asyncio.sleep(3)  # Simulate processing
         return {
             "status": "completed",
@@ -257,7 +257,7 @@ async def check_external_service() -> ReadinessCheck:
         # async with httpx.AsyncClient() as client:
         #     response = await client.get("https://api.example.com/health", timeout=2.0)
         #     response.raise_for_status()
-        
+
         latency_ms = (time.time() - start) * 1000
         return ReadinessCheck(
             name="external_api",
@@ -309,13 +309,13 @@ def init_sentry(
     # ... more config
 ) -> None:
     """Initialize Sentry error tracking and performance monitoring."""
-    
+
     integrations: list[Any] = [
         LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
         # FastAPI integration
         # SQLAlchemy integration
     ]
-    
+
     sentry_sdk.init(
         dsn=dsn,
         environment=environment,
@@ -379,18 +379,18 @@ app.add_middleware(
 ```python
 class SSRFPreventionMiddleware(BaseHTTPMiddleware):
     """Prevent Server-Side Request Forgery (SSRF) attacks."""
-    
+
     BLOCKED_HOSTS = {
         "localhost", "127.0.0.1", "0.0.0.0",
         "169.254.169.254",  # AWS metadata
         "metadata.google.internal",  # GCP metadata
     }
-    
+
     BLOCKED_RANGES = [
         "10.", "172.16.", "192.168.",  # Private ranges
         "169.254.", "::1", "fc00::",  # Special ranges
     ]
-    
+
     async def dispatch(self, request: Request, call_next) -> Response:
         # Check for SSRF patterns in query parameters
 ```
@@ -452,13 +452,13 @@ def add_security_middleware(
 ```python
 class Settings(BaseSettings):
     """Configuration settings for the application."""
-    
+
     model_config = SettingsConfigDict(
         env_prefix="{{ cookiecutter.project_slug }}_",
         case_sensitive=False,
         extra="ignore",
     )
-    
+
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     json_logs: bool = False
     include_timestamp: bool = True
@@ -492,13 +492,13 @@ settings = Settings()
 ```python
 class DynamicConfig:
     """Fetch config from central service"""
-    
+
     async def get_config(self, key: str) -> Any:
         """Get configuration value from central service"""
         # Implement caching with TTL
         # Watch for changes
         # Support namespacing
-        
+
     async def get_feature_flag(self, flag_name: str) -> bool:
         """Get feature flag status"""
         # Support gradual rollout
@@ -515,7 +515,7 @@ class DynamicConfig:
 ```python
 class SecretsManager:
     """Fetch secrets from Vault or cloud provider"""
-    
+
     async def get_secret(self, secret_name: str) -> str:
         """Retrieve secret from vault"""
         # Implement rotation
@@ -547,14 +547,14 @@ def setup_logging(
     include_timestamp: bool = True,
 ) -> None:
     """Configure structured logging for the application."""
-    
+
     processors: list[Any] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         # ... more processors
     ]
-    
+
     if json_logs:
         # Production: JSON logs for easy parsing and aggregation
         processors.append(structlog.processors.JSONRenderer())
@@ -763,4 +763,3 @@ def add_breadcrumb(
 3. Create client SDKs for each service
 4. Update cookiecutter template to integrate with central services
 5. Create migration guides for existing projects
-

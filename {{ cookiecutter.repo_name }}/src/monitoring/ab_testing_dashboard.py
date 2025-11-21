@@ -13,26 +13,21 @@ Features:
 - Risk assessment and safety monitoring
 """
 
-import asyncio
-import json
+import html
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from enum import Enum
+from typing import Any
 
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
 import pandas as pd
-from jinja2 import Template
+import plotly.graph_objects as go
+from jinja2 import Template, select_autoescape
+from plotly.subplots import make_subplots
 
-from ..core.ab_testing_framework import (
-    ExperimentManager, get_experiment_manager, ExperimentResults,
-    MetricEvent, UserCharacteristics
-)
+from ..core.ab_testing_framework import ExperimentManager, ExperimentResults, get_experiment_manager
 from ..utils.observability import ObservabilityMixin
-from ..config.settings import get_settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +64,7 @@ class Alert:
     timestamp: datetime = field(default_factory=datetime.utcnow)
     acknowledged: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert alert to dictionary."""
         return {
             "id": self.id,
@@ -106,16 +101,16 @@ class DashboardMetrics:
     error_rate: float
 
     # Variant comparison
-    variants: Dict[str, Dict[str, Any]]
+    variants: dict[str, dict[str, Any]]
 
     # Time series data
-    performance_timeline: List[Dict[str, Any]]
-    conversion_timeline: List[Dict[str, Any]]
-    error_timeline: List[Dict[str, Any]]
+    performance_timeline: list[dict[str, Any]]
+    conversion_timeline: list[dict[str, Any]]
+    error_timeline: list[dict[str, Any]]
 
     # Alerts and recommendations
-    active_alerts: List[Alert]
-    recommendations: List[str]
+    active_alerts: list[Alert]
+    recommendations: list[str]
 
     # Risk assessment
     risk_level: str  # low, medium, high, critical
@@ -124,7 +119,7 @@ class DashboardMetrics:
     # Metadata
     last_updated: datetime = field(default_factory=datetime.utcnow)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "experiment_id": self.experiment_id,
@@ -158,11 +153,14 @@ class MetricsCollector(ObservabilityMixin):
         self.experiment_manager = experiment_manager
         self.logger = logging.getLogger(__name__)
 
-    async def collect_experiment_metrics(self, experiment_id: str) -> Optional[DashboardMetrics]:
+    async def collect_experiment_metrics(self, experiment_id: str) -> DashboardMetrics | None:
         """Collect comprehensive metrics for an experiment."""
         try:
             with self.experiment_manager.get_db_session() as db_session:
-                from ..core.ab_testing_framework import ExperimentModel, UserAssignmentModel, MetricEventModel
+                from ..core.ab_testing_framework import (
+                    ExperimentModel,
+                    UserAssignmentModel,
+                )
 
                 # Get experiment details
                 experiment = db_session.query(ExperimentModel).filter_by(id=experiment_id).first()
@@ -178,7 +176,7 @@ class MetricsCollector(ObservabilityMixin):
                 total_users = results.total_users
 
                 # Get active users in last 24h
-                cutoff_time = datetime.utcnow() - timedelta(hours=24)
+                cutoff_time = datetime.now(UTC) - timedelta(hours=24)
                 active_users_24h = db_session.query(UserAssignmentModel).filter(
                     UserAssignmentModel.experiment_id == experiment_id,
                     UserAssignmentModel.last_interaction >= cutoff_time
@@ -235,13 +233,13 @@ class MetricsCollector(ObservabilityMixin):
             self.logger.error(f"Failed to collect metrics for experiment {experiment_id}: {e}")
             return None
 
-    async def _collect_performance_timeline(self, experiment_id: str, db_session) -> List[Dict[str, Any]]:
+    async def _collect_performance_timeline(self, experiment_id: str, db_session) -> list[dict[str, Any]]:
         """Collect performance metrics over time."""
         try:
             from ..core.ab_testing_framework import MetricEventModel
 
             # Get performance events from last 7 days
-            cutoff_time = datetime.utcnow() - timedelta(days=7)
+            cutoff_time = datetime.now(UTC) - timedelta(days=7)
 
             events = db_session.query(MetricEventModel).filter(
                 MetricEventModel.experiment_id == experiment_id,
@@ -303,13 +301,13 @@ class MetricsCollector(ObservabilityMixin):
             self.logger.error(f"Failed to collect performance timeline: {e}")
             return []
 
-    async def _collect_conversion_timeline(self, experiment_id: str, db_session) -> List[Dict[str, Any]]:
+    async def _collect_conversion_timeline(self, experiment_id: str, db_session) -> list[dict[str, Any]]:
         """Collect conversion metrics over time."""
         try:
             from ..core.ab_testing_framework import MetricEventModel
 
             # Get optimization events (successful token reductions are conversions)
-            cutoff_time = datetime.utcnow() - timedelta(days=7)
+            cutoff_time = datetime.now(UTC) - timedelta(days=7)
 
             events = db_session.query(MetricEventModel).filter(
                 MetricEventModel.experiment_id == experiment_id,
@@ -355,13 +353,13 @@ class MetricsCollector(ObservabilityMixin):
             self.logger.error(f"Failed to collect conversion timeline: {e}")
             return []
 
-    async def _collect_error_timeline(self, experiment_id: str, db_session) -> List[Dict[str, Any]]:
+    async def _collect_error_timeline(self, experiment_id: str, db_session) -> list[dict[str, Any]]:
         """Collect error metrics over time."""
         try:
             from ..core.ab_testing_framework import MetricEventModel
 
             # Get all events from last 7 days
-            cutoff_time = datetime.utcnow() - timedelta(days=7)
+            cutoff_time = datetime.now(UTC) - timedelta(days=7)
 
             events = db_session.query(MetricEventModel).filter(
                 MetricEventModel.experiment_id == experiment_id,
@@ -405,7 +403,7 @@ class MetricsCollector(ObservabilityMixin):
             self.logger.error(f"Failed to collect error timeline: {e}")
             return []
 
-    async def _generate_alerts(self, experiment_id: str, results: ExperimentResults) -> List[Alert]:
+    async def _generate_alerts(self, experiment_id: str, results: ExperimentResults) -> list[Alert]:
         """Generate alerts based on experiment results."""
         alerts = []
 
@@ -484,7 +482,7 @@ class MetricsCollector(ObservabilityMixin):
 
         return alerts
 
-    def _generate_recommendations(self, results: ExperimentResults) -> List[str]:
+    def _generate_recommendations(self, results: ExperimentResults) -> list[str]:
         """Generate actionable recommendations based on results."""
         recommendations = []
 
@@ -594,7 +592,7 @@ class DashboardVisualizer:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    def create_performance_chart(self, timeline_data: List[Dict[str, Any]]) -> str:
+    def create_performance_chart(self, timeline_data: list[dict[str, Any]]) -> str:
         """Create performance timeline chart."""
         try:
             if not timeline_data:
@@ -615,7 +613,7 @@ class DashboardVisualizer:
                     x=df['timestamp'],
                     y=df['avg_response_time_ms'],
                     name='Response Time (ms)',
-                    line=dict(color='blue')
+                    line={"color": 'blue'}
                 ),
                 row=1, col=1
             )
@@ -625,7 +623,7 @@ class DashboardVisualizer:
                     x=df['timestamp'],
                     y=df['avg_token_reduction'],
                     name='Token Reduction (%)',
-                    line=dict(color='green'),
+                    line={"color": 'green'},
                     yaxis='y2'
                 ),
                 row=1, col=1
@@ -637,7 +635,7 @@ class DashboardVisualizer:
                     x=df['timestamp'],
                     y=df['success_rate'],
                     name='Success Rate (%)',
-                    line=dict(color='orange'),
+                    line={"color": 'orange'},
                     fill='tonexty'
                 ),
                 row=2, col=1
@@ -655,7 +653,7 @@ class DashboardVisualizer:
             self.logger.error(f"Failed to create performance chart: {e}")
             return self._create_empty_chart("Error creating performance chart")
 
-    def create_variant_comparison_chart(self, variants: Dict[str, Dict[str, Any]]) -> str:
+    def create_variant_comparison_chart(self, variants: dict[str, dict[str, Any]]) -> str:
         """Create variant comparison chart."""
         try:
             if not variants:
@@ -714,7 +712,7 @@ class DashboardVisualizer:
                 y=stages,
                 x=values,
                 textinfo="value+percent initial",
-                marker=dict(color=["blue", "lightblue", "green", "lightgreen"])
+                marker={"color": ["blue", "lightblue", "green", "lightgreen"]}
             ))
 
             fig.update_layout(
@@ -769,11 +767,11 @@ class DashboardVisualizer:
             xref="paper", yref="paper",
             x=0.5, y=0.5,
             showarrow=False,
-            font=dict(size=16)
+            font={"size": 16}
         )
         fig.update_layout(
-            xaxis=dict(showgrid=False, showticklabels=False),
-            yaxis=dict(showgrid=False, showticklabels=False),
+            xaxis={"showgrid": False, "showticklabels": False},
+            yaxis={"showgrid": False, "showticklabels": False},
             height=300
         )
         return fig.to_html(include_plotlyjs='cdn')
@@ -813,7 +811,7 @@ class ABTestingDashboard(ObservabilityMixin):
                 'variant_comparison': variant_comparison,
                 'conversion_funnel': conversion_funnel,
                 'significance_gauge': significance_gauge,
-                'last_updated': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+                'last_updated': datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')
             }
 
             # Render dashboard
@@ -821,9 +819,9 @@ class ABTestingDashboard(ObservabilityMixin):
 
         except Exception as e:
             self.logger.error(f"Failed to generate dashboard for experiment {experiment_id}: {e}")
-            return self._generate_error_dashboard(f"Error generating dashboard: {str(e)}")
+            return self._generate_error_dashboard(f"Error generating dashboard: {e!s}")
 
-    async def get_dashboard_data(self, experiment_id: str) -> Optional[Dict[str, Any]]:
+    async def get_dashboard_data(self, experiment_id: str) -> dict[str, Any] | None:
         """Get dashboard data as JSON for API endpoints."""
         try:
             metrics = await self.metrics_collector.collect_experiment_metrics(experiment_id)
@@ -833,7 +831,7 @@ class ABTestingDashboard(ObservabilityMixin):
             self.logger.error(f"Failed to get dashboard data for experiment {experiment_id}: {e}")
             return None
 
-    async def get_experiment_summary(self) -> List[Dict[str, Any]]:
+    async def get_experiment_summary(self) -> list[dict[str, Any]]:
         """Get summary of all experiments for overview dashboard."""
         try:
             with self.experiment_manager.get_db_session() as db_session:
@@ -1092,16 +1090,18 @@ class ABTestingDashboard(ObservabilityMixin):
 </body>
 </html>
         """
-        return Template(template_str)
+        return Template(template_str, autoescape=select_autoescape(['html', 'xml']))
 
     def _generate_error_dashboard(self, error_message: str) -> str:
-        """Generate error dashboard HTML."""
+        """Generate error dashboard HTML with XSS protection."""
+        # Security: Escape error message to prevent XSS attacks
+        safe_message = html.escape(error_message)
         return f"""
         <html>
         <head><title>Dashboard Error</title></head>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
             <h1>Dashboard Error</h1>
-            <p>{error_message}</p>
+            <p>{safe_message}</p>
             <button onclick="window.location.reload()">Retry</button>
         </body>
         </html>
@@ -1109,7 +1109,7 @@ class ABTestingDashboard(ObservabilityMixin):
 
 
 # Global dashboard instance
-_dashboard_instance: Optional[ABTestingDashboard] = None
+_dashboard_instance: ABTestingDashboard | None = None
 
 
 async def get_dashboard_instance() -> ABTestingDashboard:
