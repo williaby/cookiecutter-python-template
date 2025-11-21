@@ -20,8 +20,8 @@ Never use float for money:
     >>> from decimal import Decimal
     >>> price = Decimal('19.99')
     >>> total = price * Decimal('3')  # Decimal('59.97')
-{% endif -%}
 """
+{% endif -%}
 
 {% if cookiecutter.use_decimal_precision == "yes" -%}
 from decimal import Decimal, ROUND_HALF_UP, getcontext
