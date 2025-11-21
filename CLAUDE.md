@@ -116,7 +116,7 @@ uv sync --all-extras
 uv run pre-commit install
 uv run pytest -v
 uv run ruff check .
-uv run mypy src/
+uv run basedpyright src/
 
 # 3. Clean up test project
 cd /tmp && rm -rf my_project
@@ -147,7 +147,16 @@ author = "{{ cookiecutter.author_name | title }}"
 - `project_slug`: Python package name (snake_case)
 - `author_name`, `author_email`: Author information
 - `python_version`: Target Python version
-- Feature flags: `include_cli`, `use_mkdocs`, `include_github_actions`, etc.
+
+**Feature Flags**:
+- `include_cli`: CLI application with Typer
+- `use_mkdocs`: MkDocs documentation site
+- `include_github_actions`: GitHub Actions CI/CD workflows
+- `include_semantic_release`: Python Semantic Release for automated versioning
+- `include_codecov`: Codecov integration for coverage reporting
+- `include_sonarcloud`: SonarCloud for code quality analysis
+- `include_renovate`: Renovate for dependency updates
+- `include_docker`: Docker containerization support
 
 ### Hook Development
 
@@ -444,12 +453,114 @@ When users create projects with `include_sonarcloud=yes`:
 - If analysis incomplete: Check `sonar-project.properties` source paths
 - If quality gate fails: Review specific issues in SonarCloud dashboard
 
+## Semantic Release Integration
+
+When users create projects with `include_semantic_release=yes`, automated versioning is enabled.
+
+### How It Works
+
+Semantic Release uses conventional commits to automatically determine version bumps:
+- `fix:` commits trigger a **patch** release (0.0.X)
+- `feat:` commits trigger a **minor** release (0.X.0)
+- `BREAKING CHANGE:` in commit body or `feat!:`/`fix!:` trigger a **major** release (X.0.0)
+
+### Generated Files
+
+- `.github/workflows/release.yml` - Automated release workflow
+- `pyproject.toml` - Semantic release configuration under `[tool.semantic_release]`
+
+### Workflow Jobs
+
+1. **Pre-Release Tests**: Runs full test suite before release
+2. **Semantic Release**: Analyzes commits, determines version, creates release
+3. **Publish to PyPI**: Uses trusted publishing (OIDC) to publish packages
+
+### Configuration Options
+
+```toml
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+commit_parser = "conventional_commits"
+major_on_zero = false  # Don't bump major for breaking changes on 0.x
+allow_zero_version = true
+```
+
+### Manual Release Trigger
+
+Force a specific release type via workflow dispatch:
+- Go to Actions > Semantic Release > Run workflow
+- Select release type: patch, minor, major, or prerelease
+
+### PyPI Trusted Publishing Setup
+
+1. Create project at pypi.org
+2. Configure trusted publishing under "Publishing" settings
+3. Add GitHub repository as trusted publisher
+4. Set environment name to `pypi`
+
+### Fallback Mode
+
+If `include_semantic_release=no`, a simpler tag-based release workflow is generated:
+- Manually push tags (`git tag v1.0.0 && git push --tags`)
+- Workflow triggers on `v*.*.*` tags
+
+## Type Checking with BasedPyright
+
+This template uses BasedPyright instead of MyPy for type checking:
+- **3-5x faster** than MyPy
+- **Stricter analysis** with better type inference
+- **Strict mode** enabled by default (not "all" to avoid excessive noise)
+
+### Configuration
+
+```toml
+[tool.basedpyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+```
+
+### Usage
+
+```bash
+uv run basedpyright src/
+```
+
+## PyStrict-Aligned Ruff Configuration
+
+Ruff is configured with PyStrict-aligned rules for ultra-strict code quality:
+
+### Additional Rule Sets
+
+- **BLE**: No bare `except:` or `except Exception:`
+- **EM**: Error message best practices
+- **SLF**: Private member access violations
+- **INP**: Require `__init__.py` in packages
+- **ISC**: Implicit string concatenation
+- **PGH**: Deprecated type comments
+- **RSE**: Raise statement best practices
+- **TID**: Banned imports, relative imports
+- **YTT**: Python version checks
+- **FA**: Future annotations
+- **T10**: No debugger statements
+- **G**: Logging format strings
+
+### Per-File Ignores
+
+Test files, scripts, and tools directories have relaxed rules for pragmatic development:
+- Tests can use assertions, private member access, and debugger statements
+- Scripts can use print statements and have simpler error handling
+
 ## Additional Resources
 
 - **Cookiecutter Docs**: https://cookiecutter.readthedocs.io/
 - **Cruft Docs**: https://cruft.github.io/cruft/
 - **Jinja2 Docs**: https://jinja.palletsprojects.com/
 - **UV Docs**: https://docs.astral.sh/uv/
+- **BasedPyright Docs**: https://docs.basedpyright.com
+- **Python Semantic Release**: https://python-semantic-release.readthedocs.io/
 - **Template Examples**: See `docs/` for detailed examples
 
 ---

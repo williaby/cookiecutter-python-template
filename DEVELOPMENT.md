@@ -75,7 +75,7 @@ uv sync --extra dev
 
 # Verify installation
 uv run ruff --version
-uv run mypy --version
+uv run basedpyright --version
 uv run cookiecutter --version
 uv run cruft --version
 
@@ -135,7 +135,7 @@ def main() -> None:
 
 **Quality Requirements for Hooks**:
 - ✅ Must pass Ruff linting
-- ✅ Must pass MyPy type checking
+- ✅ Must pass BasedPyright type checking
 - ✅ Must pass Bandit security scan
 - ✅ Must be formatted with Black
 
@@ -184,7 +184,7 @@ uv sync --all-extras
 
 # 3. Run quality checks
 uv run ruff check .
-uv run mypy src/
+uv run basedpyright src/
 uv run bandit -r src/
 
 # 4. Run tests
@@ -208,12 +208,12 @@ uv run pre-commit run --all-files
 # Run individual hooks
 uv run pre-commit run black --all-files
 uv run pre-commit run ruff --all-files
-uv run pre-commit run mypy --all-files
+uv run pre-commit run basedpyright --all-files
 
 # Run linters directly (faster for iteration)
 uv run ruff check hooks/
 uv run ruff format hooks/
-uv run mypy hooks/
+uv run basedpyright hooks/
 uv run bandit -r hooks/
 
 # Check for hardcoded values that should be templated
@@ -418,10 +418,10 @@ Before committing template changes:
 - [ ] Template generates successfully with default values
 - [ ] Template generates successfully with all features enabled
 - [ ] Template generates successfully with all features disabled
-- [ ] Generated project passes all quality checks (Ruff, MyPy, Bandit)
+- [ ] Generated project passes all quality checks (Ruff, BasedPyright, Bandit)
 - [ ] Generated project tests pass
 - [ ] Pre-commit hooks pass on template repository
-- [ ] Hooks pass all linters (Ruff, MyPy, Black, Bandit)
+- [ ] Hooks pass all linters (Ruff, BasedPyright, Black, Bandit)
 - [ ] No hardcoded values that should be templated
 - [ ] Documentation updated (README.md, this file)
 - [ ] CHANGELOG.md updated (if significant change)

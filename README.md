@@ -203,7 +203,7 @@ Complete project structure with:
 
 **Code Quality:**
 - ✅ **Ruff** consolidated linting
-- ✅ **MyPy** strict type checking
+- ✅ **BasedPyright** strict type checking
 - ✅ **pytest** with 80% coverage target
 - ✅ **SonarCloud** continuous code quality and security analysis (optional)
 - ✅ **Pre-commit hooks** (9+ automated checks)
