@@ -66,6 +66,7 @@
 
   "_comment_cicd": "CI/CD Configuration (Gitleaks, OSV Scanner, Semgrep, TruffleHog always included for security)",
   "include_github_actions": ["yes", "no"],
+  "include_semantic_release": ["yes", "no"],
   "include_fuzzing": ["no", "yes"],
   "include_codecov": ["yes", "no"],
   "include_sonarcloud": ["no", "yes"],
@@ -84,6 +85,9 @@
   "_comment_monitoring": "Monitoring and Observability",
   "include_sentry": ["no", "yes"],
   "include_health_checks": ["yes", "no"],
+
+  "_comment_testing": "Testing Configuration",
+  "include_mutation_testing": ["no", "yes"],
 
   "_comment_performance": "Performance and Scalability",
   "include_background_jobs": ["no", "arq", "celery"],

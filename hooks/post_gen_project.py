@@ -480,6 +480,7 @@ def print_success_message() -> None:
     include_background_jobs = "{{ cookiecutter.include_background_jobs }}"
     include_caching = "{{ cookiecutter.include_caching }}" == "yes"
     include_load_testing = "{{ cookiecutter.include_load_testing }}" == "yes"
+    include_semantic_release = "{{ cookiecutter.include_semantic_release }}" == "yes"
 
     print("\n" + "=" * 60)
     print(f"🎉 SUCCESS! {project_name} has been created!")
@@ -499,6 +500,8 @@ def print_success_message() -> None:
         optional_features.append("Redis caching")
     if include_load_testing:
         optional_features.append("Load testing (Locust & k6)")
+    if include_semantic_release:
+        optional_features.append("Semantic Release (automated versioning)")
 
     if optional_features:
         print("\n✨ Optional features included:")
@@ -560,6 +563,13 @@ def print_success_message() -> None:
     if include_sentry:
         print("\n  🔍 Sentry:")
         print("     Set SENTRY_DSN in .env to enable error tracking")
+
+    if include_semantic_release:
+        print("\n  🚀 Semantic Release:")
+        print("     Releases are automated on push to main/master branch")
+        print("     Use conventional commits: feat:, fix:, BREAKING CHANGE:")
+        print("     Manual release: gh workflow run 'Semantic Release'")
+        print("     PyPI publishing requires trusted publisher setup")
 
     print("\n" + "=" * 60)
     print("📚 Documentation:")
