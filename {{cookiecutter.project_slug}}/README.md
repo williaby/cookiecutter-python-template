@@ -2,6 +2,9 @@
 
 ## Quality & Security
 
+{%- if cookiecutter.include_github_actions == "yes" %}
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/badge)](https://securityscorecards.dev/viewer/?uri=github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}})
+{%- endif %}
 {%- if cookiecutter.include_codecov == "yes" %}
 [![codecov](https://codecov.io/gh/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/graph/badge.svg)](https://codecov.io/gh/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}})
 {%- endif %}
@@ -9,6 +12,9 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}}&metric=alert_status)](https://sonarcloud.io/summary/new_code?id={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}})
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}}&metric=security_rating)](https://sonarcloud.io/summary/new_code?id={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}})
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}}&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id={{cookiecutter.github_org_or_user}}_{{cookiecutter.project_slug}})
+{%- endif %}
+{%- if cookiecutter.use_reuse_licensing == "yes" and cookiecutter.include_github_actions == "yes" %}
+[![REUSE Compliance](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/reuse.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/reuse.yml)
 {%- endif %}
 
 ## CI/CD Status
@@ -22,6 +28,9 @@
 {%- endif %}
 {%- if cookiecutter.include_fuzzing == "yes" %}
 [![ClusterFuzzLite](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/cifuzzy.yml/badge.svg?branch=master)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/cifuzzy.yml?query=branch%3Amaster)
+{%- endif %}
+{%- if cookiecutter.include_github_actions == "yes" %}
+[![SBOM & Security Scan](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/sbom.yml/badge.svg?branch=master)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/sbom.yml?query=branch%3Amaster)
 {%- endif %}
 
 ## Project Info

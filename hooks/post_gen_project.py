@@ -113,6 +113,7 @@ def cleanup_conditional_files() -> None:
     if "{{ cookiecutter.use_reuse_licensing }}" == "no":
         remove_file(Path("REUSE.toml"))
         remove_dir(Path("LICENSES"))
+        remove_file(Path(".github/workflows/reuse.yml"))
 
     # Remove Docker files if not needed
     if "{{ cookiecutter.include_docker }}" == "no":
