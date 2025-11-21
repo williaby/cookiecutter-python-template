@@ -58,7 +58,7 @@
   "use_sphinx": ["no", "yes"],
 
   "_comment_coverage": "Quality Thresholds",
-  "code_coverage_target": "60",
+  "code_coverage_target": "80",
   "docstring_coverage_target": "85",
 
   "_comment_tools": "Development Tools (Ruff, Mypy, Bandit always included for Python projects)",
