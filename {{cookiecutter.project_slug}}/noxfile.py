@@ -1,24 +1,35 @@
 {%- if cookiecutter.include_nox == "yes" %}
-"""Nox-UV sessions for local testing and documentation workflows.
+"""Nox-UV sessions for testing, documentation, and compliance workflows.
 
 Nox-UV uses UV for fast virtual environment creation and package installation.
-This file defines sessions for documentation validation, building, and serving,
-as well as multi-Python version testing.
+This file defines sessions organized by the test pyramid pattern.
 
-Usage:
-    nox -s fm          # Validate and autofix front matter
-    nox -s docs        # Build documentation
-    nox -s serve       # Serve documentation locally
-    nox -s docstrings  # Check docstring coverage
-    nox -s validate    # Run all validation checks
-    nox -s reuse       # Check REUSE compliance
-    nox -s sbom        # Generate SBOM
-    nox -s scan        # Scan SBOM for vulnerabilities
-    nox -s compliance  # Run all compliance checks
-    nox -s assuredoss  # Validate Google Assured OSS credentials
-    nox -s test        # Run tests across Python 3.10-3.14
-    nox -s lint        # Run Ruff linting and type hint checks across Python 3.10-3.14
-    nox -s typecheck   # Run MyPy type checking across Python 3.10-3.14
+Test Pyramid Sessions:
+    nox -s test            # Run full test suite across Python 3.10-3.14
+    nox -s unit            # Run unit tests only (fast, 85%+ coverage target)
+    nox -s integration     # Run integration tests (70%+ coverage target)
+    nox -s fast            # Fast dev loop - excludes slow tests
+    nox -s security_tests  # Run security assertion tests
+    nox -s perf            # Run performance tests (if load testing enabled)
+    nox -s mutate          # Run mutation testing (if mutation testing enabled)
+
+Code Quality Sessions:
+    nox -s lint            # Run Ruff linting across Python 3.10-3.14
+    nox -s typecheck       # Run MyPy type checking across Python 3.10-3.14
+    nox -s docstrings      # Check docstring coverage
+
+Documentation Sessions:
+    nox -s fm              # Validate and autofix front matter
+    nox -s docs            # Build documentation
+    nox -s serve           # Serve documentation locally
+    nox -s validate        # Run all documentation validation checks
+
+Compliance Sessions:
+    nox -s reuse           # Check REUSE compliance
+    nox -s sbom            # Generate SBOM
+    nox -s scan            # Scan SBOM for vulnerabilities
+    nox -s compliance      # Run all compliance checks
+    nox -s assuredoss      # Validate Google Assured OSS credentials
 """
 
 import nox
@@ -272,11 +283,16 @@ def assuredoss(session: nox.Session) -> None:
     session.run("python", "scripts/validate_assuredoss.py")
 
 
+# ==========================================
+# TEST PYRAMID SESSIONS
+# ==========================================
+
+
 @nox.session(python=["3.10", "3.11", "3.12", "3.13", "3.14"])
 def test(session: nox.Session) -> None:
-    """Run tests across multiple Python versions.
+    """Run full test suite across multiple Python versions.
 
-    This session runs the full test suite with coverage reporting
+    This session runs all tests with coverage reporting
     across Python 3.10, 3.11, 3.12, 3.13, and 3.14 to ensure compatibility.
     """
     session.install("-e", ".[dev]")
@@ -284,11 +300,152 @@ def test(session: nox.Session) -> None:
         "pytest",
         "-v",
         "--cov=src",
-        "--cov-report=xml",
+        "--cov-branch",
+        "--cov-report=xml:coverage.xml",
         "--cov-report=term-missing:skip-covered",
         "--cov-fail-under={{cookiecutter.code_coverage_target}}",
         "tests/",
+        *session.posargs,
     )
+
+
+@nox.session(python="{{cookiecutter.python_version}}")
+def unit(session: nox.Session) -> None:
+    """Run unit tests only (fast development cycle).
+
+    Unit tests are isolated, fast, and don't require external dependencies.
+    Target: 85%+ coverage for unit tests.
+    """
+    session.install("-e", ".[dev]")
+    session.run(
+        "pytest",
+        "-m",
+        "unit and not slow",
+        "--cov=src",
+        "--cov-branch",
+        "--cov-report=xml:coverage-unit.xml",
+        "--cov-report=term-missing:skip-covered",
+        "--cov-fail-under=85",
+        "-v",
+        *session.posargs,
+    )
+
+
+@nox.session(python="{{cookiecutter.python_version}}")
+def integration(session: nox.Session) -> None:
+    """Run integration tests (with real services).
+
+    Integration tests verify interaction between components.
+    Target: 70%+ coverage for integration tests.
+    """
+    session.install("-e", ".[dev]")
+    session.run(
+        "pytest",
+        "-m",
+        "integration",
+        "--cov=src",
+        "--cov-branch",
+        "--cov-report=xml:coverage-integration.xml",
+        "--cov-report=term-missing:skip-covered",
+        "--cov-fail-under=70",
+        "-v",
+        *session.posargs,
+    )
+
+
+@nox.session(python="{{cookiecutter.python_version}}")
+def fast(session: nox.Session) -> None:
+    """Fast development loop - exclude slow tests.
+
+    Use this for rapid feedback during development.
+    Excludes slow tests and stops after 5 failures.
+    """
+    session.install("-e", ".[dev]")
+    session.run(
+        "pytest",
+        "-m",
+        "not slow",
+        "--cov=src",
+        "--cov-branch",
+        "--cov-report=term-missing:skip-covered",
+        "--cov-fail-under=75",
+        "--maxfail=5",
+        "-v",
+        *session.posargs,
+    )
+
+
+@nox.session(python="{{cookiecutter.python_version}}")
+def security_tests(session: nox.Session) -> None:
+    """Run security assertion tests.
+
+    Tests focused on security-critical functionality.
+    """
+    session.install("-e", ".[dev]")
+    session.run(
+        "pytest",
+        "-m",
+        "security",
+        "--cov=src",
+        "--cov-branch",
+        "--cov-report=xml:coverage-security.xml",
+        "--cov-report=term-missing:skip-covered",
+        "-v",
+        *session.posargs,
+    )
+
+
+{%- if cookiecutter.include_load_testing == "yes" %}
+
+
+@nox.session(python="{{cookiecutter.python_version}}")
+def perf(session: nox.Session) -> None:
+    """Run performance and load tests.
+
+    Tests focused on performance benchmarking and load testing.
+    """
+    session.install("-e", ".[dev]")
+    session.run(
+        "pytest",
+        "-m",
+        "perf or performance",
+        "-v",
+        "--tb=short",
+        "--durations=10",
+        *session.posargs,
+    )
+{%- endif %}
+
+
+{%- if cookiecutter.include_mutation_testing == "yes" %}
+
+
+@nox.session(python="{{cookiecutter.python_version}}")
+def mutate(session: nox.Session) -> None:
+    """Run mutation testing to verify test quality.
+
+    Mutation testing introduces small code changes (mutations) and verifies
+    that tests catch them. A high mutation score indicates effective tests.
+
+    Usage:
+        nox -s mutate              # Run mutation testing
+        nox -s mutate -- --report  # Show mutation report
+    """
+    session.install("-e", ".[dev]")
+
+    if session.posargs and "--report" in session.posargs:
+        # Show results only
+        session.run("mutmut", "results")
+    else:
+        # Run mutation testing
+        session.run("mutmut", "run", "--no-progress")
+        session.run("mutmut", "results")
+{%- endif %}
+
+
+# ==========================================
+# CODE QUALITY SESSIONS
+# ==========================================
 
 
 @nox.session(python=["3.10", "3.11", "3.12", "3.13", "3.14"])
@@ -308,11 +465,12 @@ def lint(session: nox.Session) -> None:
 def typecheck(session: nox.Session) -> None:
     """Run type checking across multiple Python versions.
 
-    This session runs MyPy type checking to ensure type safety
-    across all supported Python versions.
+    This session runs BasedPyright type checking to ensure type safety
+    across all supported Python versions. BasedPyright is a stricter fork
+    of Pyright that provides faster analysis than MyPy.
     """
     session.install("-e", ".[dev]")
-    session.run("mypy", "src", "--config-file=pyproject.toml")
+    session.run("basedpyright", "src")
 {%- else %}
 """Nox sessions - NOT CONFIGURED
 

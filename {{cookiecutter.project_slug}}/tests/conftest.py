@@ -28,11 +28,19 @@ BENCHMARKS_DIR = PROJECT_ROOT / "data" / "benchmarks"
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Register custom pytest markers.
+    """Register custom pytest markers for test pyramid.
+
+    Test Pyramid Markers:
+        unit: Fast, isolated tests (no external dependencies)
+        integration: Tests verifying component interaction
+        security: Security-focused assertion tests
+        perf: Performance and load tests
+        slow: Tests that take significant time
 
     Args:
         config: Pytest configuration object.
     """
+    # Test type markers (for test pyramid)
     config.addinivalue_line(
         "markers",
         "unit: Unit tests (fast, isolated, no external dependencies)",
@@ -43,7 +51,29 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     config.addinivalue_line(
         "markers",
+        "security: Security-focused tests (auth, input validation, etc.)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "perf: Performance and load tests (benchmarking, stress testing)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "performance: Alias for perf marker",
+    )
+
+    # Execution modifier markers
+    config.addinivalue_line(
+        "markers",
         "slow: Slow tests (can be excluded with -m 'not slow')",
+    )
+    config.addinivalue_line(
+        "markers",
+        "smoke: Smoke tests for quick sanity checks",
+    )
+    config.addinivalue_line(
+        "markers",
+        "regression: Regression tests for previously fixed bugs",
     )
 
 
