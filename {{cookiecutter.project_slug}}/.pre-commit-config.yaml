@@ -49,7 +49,7 @@ repos:
   # ============================================================================
   # Qlty runs all quality tools in a single pass:
   # - Ruff (linting + formatting)
-  # - Mypy (type checking)
+  # - BasedPyright (type checking)
   # - Bandit (security scanning)
   # - Gitleaks (secrets detection)
   # - Markdownlint (markdown linting)

@@ -31,6 +31,13 @@
 {%- endif %}
 {%- if cookiecutter.include_github_actions == "yes" %}
 [![SBOM & Security Scan](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/sbom.yml/badge.svg?branch=master)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/sbom.yml?query=branch%3Amaster)
+[![PR Validation](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/pr-validation.yml)
+{%- endif %}
+{%- if cookiecutter.include_semantic_release == "yes" and cookiecutter.include_github_actions == "yes" %}
+[![Release](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/release.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/release.yml)
+{%- endif %}
+{%- if cookiecutter.include_github_actions == "yes" %}
+[![PyPI Publish](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/publish-pypi.yml/badge.svg)](https://github.com/{{cookiecutter.github_org_or_user}}/{{cookiecutter.project_slug}}/actions/workflows/publish-pypi.yml)
 {%- endif %}
 
 ## Project Info
@@ -55,7 +62,7 @@ This project provides:
 ## Features
 
 - **High Quality**: {{cookiecutter.code_coverage_target}}%+ test coverage enforced via CI
-- **Type Safe**: Full type hints with MyPy strict mode
+- **Type Safe**: Full type hints with BasedPyright strict mode
 - **Well Documented**: Clear docstrings and comprehensive guides
 - **Developer Friendly**: Pre-commit hooks, automated formatting, linting
 - **Security First**: Dependency scanning, security analysis, SBOM generation
@@ -251,13 +258,34 @@ uv run pre-commit run --all-files
 All code must meet these requirements:
 
 - **Formatting**: Ruff (88 char limit)
-- **Linting**: Ruff with comprehensive rules
-- **Type Checking**: MyPy strict mode
+- **Linting**: Ruff with PyStrict-aligned rules (see below)
+- **Type Checking**: BasedPyright strict mode
 - **Testing**: Pytest with {{cookiecutter.code_coverage_target}}%+ coverage
 - **Security**: Bandit + dependency scanning
 - **Documentation**: Docstrings on all public APIs
 
 **Unified Quality Tool**: This project uses [Qlty](https://qlty.sh) to consolidate all quality checks into a single fast tool. See [`.qlty/qlty.toml`](.qlty/qlty.toml) for configuration.
+
+### PyStrict-Aligned Ruff Configuration
+
+This project uses **PyStrict-aligned Ruff rules** for stricter code quality enforcement beyond standard Python linting:
+
+| Rule | Category | Purpose |
+|------|----------|---------|
+| **BLE** | Blind except | Prevent bare `except:` clauses |
+| **EM** | Error messages | Enforce descriptive error messages |
+| **SLF** | Private access | Prevent access to private members |
+| **INP** | Implicit packages | Require explicit `__init__.py` |
+| **ISC** | Implicit concatenation | Prevent implicit string concatenation |
+| **PGH** | Pygrep hooks | Advanced pattern-based checks |
+| **RSE** | Raise statement | Proper exception raising |
+| **TID** | Tidy imports | Clean import organization |
+| **YTT** | sys.version | Safe version checking |
+| **FA** | Future annotations | Modern annotation syntax |
+| **T10** | Debugger | No debugger statements in production |
+| **G** | Logging format | Safe logging string formatting |
+
+These rules catch bugs that standard linting misses and enforce production-quality code patterns.
 
 ### Claude Code Standards
 
@@ -321,7 +349,7 @@ qlty check
 qlty check --filter=diff
 
 # Run specific plugins only
-qlty check --plugin ruff --plugin mypy
+qlty check --plugin ruff --plugin pyright
 
 # Auto-format code
 qlty fmt
@@ -335,7 +363,7 @@ qlty config show
 **Python Quality:**
 
 - Ruff (linting + formatting)
-- Mypy (type checking)
+- BasedPyright (type checking)
 - Bandit (security scanning)
 
 **Security & Secrets:**
@@ -375,7 +403,7 @@ uv run ruff format src tests
 uv run ruff check --fix src tests
 
 # Type checking
-uv run mypy src
+uv run basedpyright src
 
 # Security scanning
 uv run bandit -r src
@@ -474,7 +502,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 - [ ] Code follows style guide (Ruff format + lint)
 - [ ] All tests pass with {{cookiecutter.code_coverage_target}}%+ coverage
-- [ ] MyPy type checking passes
+- [ ] BasedPyright type checking passes
 - [ ] Docstrings added for new public APIs
 - [ ] CHANGELOG.md updated (if significant change)
 - [ ] Commits follow conventional commit format
@@ -488,6 +516,43 @@ This project uses [Semantic Versioning](https://semver.org/):
 - **PATCH** version: Backwards-compatible bug fixes
 
 Current version: **{{cookiecutter.version}}**
+
+### Automated Releases with Semantic Release
+
+This project uses [python-semantic-release](https://python-semantic-release.readthedocs.io/) for automated versioning based on [Conventional Commits](https://www.conventionalcommits.org/).
+
+**How it works:**
+
+1. **Commit messages determine version bumps:**
+   - `fix:` commits trigger a **PATCH** release (1.0.0 → 1.0.1)
+   - `feat:` commits trigger a **MINOR** release (1.0.0 → 1.1.0)
+   - `BREAKING CHANGE:` in commit body or `!` after type triggers **MAJOR** release (1.0.0 → 2.0.0)
+
+2. **On merge to main:**
+   - Analyzes commits since last release
+   - Determines appropriate version bump
+   - Updates version in `pyproject.toml`
+   - Generates/updates `CHANGELOG.md`
+   - Creates Git tag and GitHub Release
+   - Publishes to PyPI (if configured)
+
+**Commit message examples:**
+
+```bash
+# Patch release (bug fix)
+git commit -m "fix: resolve null pointer in data parser"
+
+# Minor release (new feature)
+git commit -m "feat: add CSV export functionality"
+
+# Major release (breaking change)
+git commit -m "feat!: redesign API for better ergonomics
+
+BREAKING CHANGE: API has been redesigned for improved usability.
+See migration guide in docs/migration/v2.0.0.md"
+```
+
+**Configuration:** See `[tool.semantic_release]` in `pyproject.toml` for settings.
 
 ## License
 

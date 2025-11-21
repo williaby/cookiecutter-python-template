@@ -24,7 +24,7 @@
 
 - **Python**: {{cookiecutter.python_version}}
 - **Package Manager**: UV
-- **Code Quality**: Ruff (linter/formatter), MyPy (type checker)
+- **Code Quality**: Ruff (linter/formatter), BasedPyright (type checker)
 - **Testing**: pytest, coverage
 - **Security**: Bandit, Safety
 {% if cookiecutter.include_cli == "yes" -%}
@@ -43,7 +43,7 @@
 
 **Coverage & Quality**:
 - Test coverage: Minimum {{cookiecutter.code_coverage_target}}%
-- All linters must pass: `uv run ruff check .`, `uv run mypy src/`
+- All linters must pass: `uv run ruff check .`, `uv run basedpyright src/`
 - Security scans: `uv run bandit -r src`, `uv run safety check`
 
 {% if cookiecutter.use_decimal_precision == "yes" -%}
@@ -72,12 +72,12 @@ uv run pytest -v                           # Run tests
 uv run pytest --cov=src --cov-report=html # With coverage
 uv run ruff format .                       # Format code
 uv run ruff check . --fix                  # Lint and fix
-uv run mypy src/                           # Type check
+uv run basedpyright src/                   # Type check
 
 # Before commit (all must pass)
 uv run pytest --cov=src --cov-fail-under={{cookiecutter.code_coverage_target}}
 uv run ruff check .
-uv run mypy src/
+uv run basedpyright src/
 uv run bandit -r src
 pre-commit run --all-files
 
@@ -205,7 +205,7 @@ uv run pytest tests/unit/test_example.py::test_function_name -v
 **Quality Gates** (must pass):
 - ✅ All tests pass ({{cookiecutter.code_coverage_target}}% coverage)
 - ✅ Ruff linting (no errors)
-- ✅ MyPy type checking
+- ✅ BasedPyright type checking
 - ✅ Security scans (no high/critical)
 - ✅ Pre-commit hooks
 {% endif -%}
@@ -225,10 +225,10 @@ uv lock                          # Regenerate lock
 uv sync                          # Reinstall dependencies
 ```
 
-### MyPy Type Errors
+### BasedPyright Type Errors
 ```bash
-uv run mypy src/ --show-error-codes  # Show error codes
-# Add `# type: ignore[error-code]` for specific issues
+uv run basedpyright src/  # Show type errors
+# Add `# pyright: ignore[error-code]` for specific issues
 ```
 
 ## Performance Targets

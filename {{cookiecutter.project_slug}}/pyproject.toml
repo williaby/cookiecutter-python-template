@@ -89,7 +89,7 @@ dev = [
 
     # Code Quality (always included)
     "ruff>=0.9.0",
-    "mypy>=1.4.0",
+    "basedpyright>=1.18.0",  # Stricter type checker (replaces mypy)
     "bandit>=1.7.0",
 
     # Pre-commit
@@ -120,7 +120,9 @@ dev = [
     "nox>=2024.10.16",  # Fixed: was 2025 (typo)
     "nox-uv>=0.6.3",    # Fixed: max available version is 0.6.3, not 1.0.0
     {% endif -%}
+    {% if cookiecutter.include_mutation_testing == "yes" -%}
     "mutmut>=3.3.1",
+    {% endif -%}
 
     # Google Cloud Assured OSS (optional - uncomment if using Assured OSS)
     "google-auth>=2.0.0",
@@ -213,59 +215,100 @@ docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint]
+# Rule selection aligned with Google Python Style Guide + PyStrict enhancements
+# Reference: https://google.github.io/styleguide/pyguide.html
+# Reference: https://github.com/Ranteck/PyStrict-strict-python
 select = [
+    # Core Python style (Google-aligned)
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
     "F",    # Pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming (Google naming conventions)
+    "D",    # pydocstyle (Google docstring style)
+    "UP",   # pyupgrade (modern Python syntax)
+
+    # Type annotations (Google requires type hints)
+    "ANN",  # flake8-annotations (type hint enforcement)
+    "TCH",  # flake8-type-checking (TYPE_CHECKING imports)
+    "FA",   # flake8-future-annotations (use from __future__ import annotations)
+
+    # Code quality (Pylint-equivalent rules)
     "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "ARG",  # flake8-unused-arguments
+    "C90",  # mccabe complexity
+    "PL",   # Pylint rules (Google uses Pylint)
+    "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
-    "D",    # pydocstyle
+    "ARG",  # flake8-unused-arguments
+    "RET",  # flake8-return
+    "PIE",  # flake8-pie
+
+    # Security
     "S",    # flake8-bandit
-    "T20",  # flake8-print
+
+    # Best practices
+    "T10",  # flake8-debugger (no debugger statements in production)
+    "T20",  # flake8-print (no print in production)
     "PT",   # flake8-pytest-style
-    "RUF",  # Ruff-specific rules
-    "N",    # pep8-naming
+    "Q",    # flake8-quotes
+    "PTH",  # flake8-use-pathlib
     "A",    # flake8-builtins
     "DTZ",  # flake8-datetimez
-    "PIE",  # flake8-pie
-    "Q",    # flake8-quotes
-    "RET",  # flake8-return
-    "PTH",  # flake8-use-pathlib
+
+    # Performance and modernization
     "PERF", # Performance anti-patterns
     "FURB", # Refurb - modernization
+
+    # Additional quality
     "LOG",  # Logging best practices
+    "G",    # flake8-logging-format (logging string formatting)
     "TRY",  # Exception handling
     "ERA",  # Commented-out code
     "FBT",  # Boolean trap detection
     "ASYNC",# Async/await best practices
+    "RUF",  # Ruff-specific rules
+
+    # PyStrict additions (stricter standards)
+    "BLE",  # flake8-blind-except (no bare except or except Exception)
+    "EM",   # flake8-errmsg (error message best practices)
+    "SLF",  # flake8-self (private member access)
+    "INP",  # flake8-no-pep420 (require __init__.py in packages)
+    "ISC",  # flake8-implicit-str-concat (implicit string concatenation)
+    "PGH",  # pygrep-hooks (deprecated type comments, blanket ignores)
+    "RSE",  # flake8-raise (raise statement best practices)
+    "TID",  # flake8-tidy-imports (banned imports, relative imports)
+    "YTT",  # flake8-2020 (Python version checks)
 ]
 
 ignore = [
-    # Formatting
+    # Formatting (handled by ruff format)
     "E501",   # line too long (handled by formatter)
     "COM812", # missing trailing comma (handled by formatter)
     "ISC001", # implicit string concatenation (handled by formatter)
 
-    # Complexity - NOTE: C901 is NOT ignored, enforce max-complexity below
-    # "C901" - Removed to enable complexity checking (Google compliance)
+    # Docstring style (Google convention conflicts)
+    "D203",   # one-blank-line-before-class (conflicts with D211)
+    "D212",   # multi-line-summary-first-line (conflicts with D213)
+    "D105",   # missing docstring in magic method (__str__, etc.)
+    "D107",   # missing docstring in __init__ (class docstring sufficient)
 
-    # Docstring (Google style)
-    "D203",  # one-blank-line-before-class (conflicts with D211)
-    "D212",  # multi-line-docstring-summary-first-line (conflicts with D213)
+    # Type annotations (pragmatic exceptions)
+    "ANN101", # missing type annotation for self (deprecated in Python 3.11+)
+    "ANN102", # missing type annotation for cls (deprecated in Python 3.11+)
+    "ANN401", # dynamically typed expressions (Any) - sometimes necessary
+
+    # Pylint rules (too strict for all cases)
+    "PLR0913", # too many arguments (>5) - sometimes necessary for APIs
+    "PLR2004", # magic value comparison - too noisy
+    "PLW2901", # outer loop variable overwritten - sometimes intentional
 
     # Practical exceptions
     "B008",   # function calls in defaults (Pydantic/FastAPI pattern)
     "S101",   # assert (pytest uses assert statements)
-    "D105",   # missing docstring in magic method (excessive for __str__, etc.)
-    "D107",   # missing docstring in __init__ (class docstring usually sufficient)
     "PTH123", # open() vs pathlib (sometimes direct open is clearer)
-    "FBT001", # Boolean positional arg (sometimes acceptable in DSLs)
-    "FBT002", # Boolean default arg (sometimes acceptable in DSLs)
-    "TRY003", # Long exception messages (descriptive messages are good)
+    "FBT001", # Boolean positional arg (acceptable in DSLs)
+    "FBT002", # Boolean default arg (acceptable in DSLs)
+    "TRY003", # Long exception messages (descriptive is good)
 ]
 
 # McCabe Complexity Configuration (Google/Pylint alignment)
@@ -279,37 +322,122 @@ convention = "google"
 known-first-party = ["{{ cookiecutter.project_slug }}"]
 
 [tool.ruff.lint.per-file-ignores]
+# Module init files
 "__init__.py" = ["F401", "D104"]
-"tests/**/*.py" = ["ARG", "D", "S", "ERA"]
-"scripts/**/*.py" = ["D", "T20", "TRY", "S", "PTH"]
-"benchmarks/**/*.py" = ["D", "T20", "ARG", "TRY"]
-"tools/**/*.py" = ["D", "T20", "TRY"]
+
+# Test files (relaxed rules for test code)
+"tests/**/*.py" = [
+    "ANN",    # Type annotations not required in tests
+    "ARG",    # Unused arguments (fixtures)
+    "D",      # Docstrings not required in tests
+    "S",      # Security (test assertions)
+    "PLR",    # Pylint refactor suggestions
+    "ERA",    # Commented code (test debugging)
+    "SLF",    # Private member access (testing internals)
+    "BLE",    # Blind except (test error handling)
+    "EM",     # Error messages (test exceptions)
+    "TRY",    # Exception handling (test assertions)
+    "INP",    # No __init__.py required for test directories
+]
+
+# Scripts (utility code - not packages)
+"scripts/**/*.py" = [
+    "ANN", "D", "T20", "TRY", "S", "PTH", "PLR",
+    "INP",    # Scripts are not packages
+    "EM",     # Utility scripts don't need perfect error messages
+    "T10",    # Debugger allowed during script development
+]
+
+# Benchmarks (performance testing)
+"benchmarks/**/*.py" = [
+    "ANN", "D", "T20", "ARG", "TRY", "PLR",
+    "INP",    # Benchmarks are not packages
+    "EM",     # Benchmark exceptions
+]
+
+# Tools (development utilities)
+"tools/**/*.py" = [
+    "ANN", "D", "T20", "TRY", "PLR",
+    "INP",    # Tools are not packages
+    "EM",     # Tool exceptions
+]
+
 {% if cookiecutter.include_nox == "yes" -%}
-"noxfile.py" = ["D", "T20"]
+# Nox configuration
+"noxfile.py" = ["ANN", "D", "T20", "PLR", "INP"]
 {% endif -%}
 
-# MyPy Configuration
-[tool.mypy]
-python_version = "{{ cookiecutter.python_version }}"
-mypy_path = "src"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = false
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-follow_imports = "normal"
-ignore_missing_imports = true
-strict_equality = true
-strict_optional = true
+# BasedPyright Configuration
+# Replaces MyPy with faster, stricter type checking
+# Reference: https://docs.basedpyright.com
+[tool.basedpyright]
+pythonVersion = "{{ cookiecutter.python_version }}"
+pythonPlatform = "All"
 
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
+# Type checking mode: basic, standard, strict, all
+# "strict" aligns with Google Python Style Guide requirements
+typeCheckingMode = "strict"
+
+# Source paths
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+    "**/node_modules",
+    ".venv",
+    "build",
+    "dist",
+]
+
+# Strict mode customizations
+reportMissingImports = "error"
+reportMissingTypeStubs = "warning"
+reportUnusedImport = "error"
+reportUnusedClass = "error"
+reportUnusedFunction = "error"
+reportUnusedVariable = "error"
+reportDuplicateImport = "error"
+reportPrivateUsage = "warning"
+reportTypeCommentUsage = "warning"
+reportConstantRedefinition = "error"
+reportIncompatibleMethodOverride = "error"
+reportIncompatibleVariableOverride = "error"
+reportInconsistentConstructor = "error"
+reportOverlappingOverload = "error"
+reportUninitializedInstanceVariable = "warning"
+reportInvalidStringEscapeSequence = "error"
+reportUnknownParameterType = "warning"
+reportUnknownArgumentType = "warning"
+reportUnknownLambdaType = "warning"
+reportUnknownVariableType = "warning"
+reportUnknownMemberType = "warning"
+reportMissingParameterType = "warning"
+reportMissingTypeArgument = "warning"
+reportCallInDefaultInitializer = "warning"
+reportUnnecessaryIsInstance = "warning"
+reportUnnecessaryCast = "warning"
+reportUnnecessaryComparison = "warning"
+reportUnnecessaryContains = "warning"
+reportAssertAlwaysTrue = "error"
+reportSelfClsParameterName = "error"
+reportImplicitStringConcatenation = "warning"
+reportUndefinedVariable = "error"
+reportUnboundVariable = "error"
+reportUnhashable = "error"
+reportInvalidTypeVarUse = "error"
+
+# BasedPyright-specific enhancements
+reportUnreachable = "error"           # Detect unreachable code
+reportAny = "warning"                  # Flag usage of Any type
+reportExplicitAny = "warning"          # Flag explicit Any annotations
+reportIgnoreCommentWithoutRule = "warning"  # Require specific ignore rules
+
+# PyStrict strict inference settings
+strictListInference = true             # Infer list element types strictly
+strictDictionaryInference = true       # Infer dict key/value types strictly
+strictSetInference = true              # Infer set element types strictly
+strictParameterNoneValue = true        # Require explicit Optional for None defaults
+analyzeUnannotatedFunctions = true     # Analyze functions without type hints
+deprecateTypingAliases = true          # Warn on deprecated typing module aliases
 
 # Pytest Configuration
 [tool.pytest.ini_options]
@@ -449,3 +577,66 @@ tests = [
 #
 # UV automatically falls back to PyPI when packages are not found in Assured OSS.
 # Authentication uses GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS_B64.
+
+{% if cookiecutter.include_semantic_release == "yes" -%}
+# Semantic Release Configuration
+# Automates versioning and changelog generation based on conventional commits
+# Reference: https://python-semantic-release.readthedocs.io/
+[tool.semantic_release]
+# Version location in this file
+version_toml = ["pyproject.toml:project.version"]
+
+# Commit message parsing
+commit_parser = "conventional_commits"
+commit_parser_options = { parse_squash_commits = true, ignore_merge_commits = true }
+
+# Version behavior
+major_on_zero = false  # Don't bump to 1.0.0 automatically
+allow_zero_version = true  # Allow 0.x.x versions
+
+# Branches configuration
+[tool.semantic_release.branches.main]
+match = "(main|master)"
+prerelease = false
+
+[tool.semantic_release.branches.develop]
+match = "develop"
+prerelease = true
+prerelease_token = "dev"
+
+[tool.semantic_release.branches.release]
+match = "release/*"
+prerelease = true
+prerelease_token = "rc"
+
+# Changelog configuration
+[tool.semantic_release.changelog]
+template_dir = "templates"
+changelog_file = "CHANGELOG.md"
+exclude_commit_patterns = [
+    "^chore\\(release\\):",
+    "^ci:",
+    "^build:",
+]
+
+[tool.semantic_release.changelog.environment]
+block_start_string = "{%"
+block_end_string = "%}"
+variable_start_string = "{{"
+variable_end_string = "}}"
+comment_start_string = "{#"
+comment_end_string = "#}"
+trim_blocks = true
+lstrip_blocks = true
+keep_trailing_newline = true
+
+# Remote configuration
+[tool.semantic_release.remote]
+type = "github"
+token = { env = "GH_TOKEN" }
+
+# Publishing configuration
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+{% endif -%}

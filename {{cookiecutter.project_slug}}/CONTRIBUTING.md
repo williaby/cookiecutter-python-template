@@ -130,7 +130,7 @@ uv run pre-commit run --all-files
 uv run pytest --cov={{cookiecutter.project_slug}} --cov-report=term-missing
 ```
 
-**Note**: Qlty consolidates all quality tools (Ruff, MyPy, Bandit, Markdownlint, etc.) into a single fast CLI. See [`.qlty/qlty.toml`](.qlty/qlty.toml) for configuration.
+**Note**: Qlty consolidates all quality tools (Ruff, BasedPyright, Bandit, Markdownlint, etc.) into a single fast CLI. See [`.qlty/qlty.toml`](.qlty/qlty.toml) for configuration.
 
 ## Code Quality Standards
 
@@ -154,9 +154,9 @@ All contributions MUST meet these requirements:
 
 ### Type Checking
 
-- **Tool**: MyPy strict mode for `src/`
+- **Tool**: BasedPyright strict mode for `src/`
 - **Coverage**: All public functions must have type hints
-- **Verification**: `uv run mypy src`
+- **Verification**: `uv run basedpyright src`
 
 ### Security
 
