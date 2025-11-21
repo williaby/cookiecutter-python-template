@@ -8,7 +8,7 @@
 #   - Quality gate enforcement
 #   - Pull request decoration
 #
-# SonarCloud Dashboard: https://sonarcloud.io/project/overview?id=williaby_cookiecutter-python-template
+# SonarCloud Dashboard: https://sonarcloud.io/project/overview?id=ByronWilliamsCPA_cookiecutter-python-template
 # Documentation: https://docs.sonarsource.com/sonarqube-cloud/
 
 name: SonarCloud
@@ -86,7 +86,7 @@ jobs:
           fi
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v4
+        uses: sonarsource/sonarqube-scan-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed for PR decoration
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}      # SonarCloud authentication
@@ -103,7 +103,7 @@ jobs:
         run: |
           echo "### SonarCloud Quality Gate" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "View detailed results: https://sonarcloud.io/project/overview?id=williaby_cookiecutter-python-template" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results: https://sonarcloud.io/project/overview?id=ByronWilliamsCPA_cookiecutter-python-template" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Metrics analyzed:**" >> $GITHUB_STEP_SUMMARY
           echo "- Code Quality (bugs, code smells, maintainability)" >> $GITHUB_STEP_SUMMARY
