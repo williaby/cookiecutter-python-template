@@ -44,7 +44,7 @@ jobs:
         id: uv-changed
         run: |
           # Get the base branch for comparison
-          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+          BASE_BRANCH="{{ '${{' }} github.event.pull_request.base.ref {{ '}}' }}"
 
           # Check if uv.lock has changes
           if git diff --name-only "origin/${BASE_BRANCH}...HEAD" | grep -q "uv.lock"; then

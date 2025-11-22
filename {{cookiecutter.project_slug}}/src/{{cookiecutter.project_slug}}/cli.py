@@ -58,7 +58,7 @@ def hello(ctx: click.Context, name: str) -> None:
         logger.info("Command completed successfully", result=message)
 
     except Exception as e:
-        logger.error("Command failed", error=str(e), exc_info=True)
+        logger.exception("Command failed", error=str(e))
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
@@ -84,7 +84,7 @@ def config(ctx: click.Context) -> None:
         logger.info("Configuration displayed successfully")
 
     except Exception as e:
-        logger.error("Failed to display configuration", error=str(e), exc_info=True)
+        logger.exception("Failed to display configuration", error=str(e))
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 

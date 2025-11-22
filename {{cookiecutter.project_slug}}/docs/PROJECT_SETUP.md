@@ -5,6 +5,7 @@ This guide covers everything you need to know after generating your project from
 ## Table of Contents
 
 - [Initial Setup](#initial-setup)
+- [Project Planning with Claude Code](#project-planning-with-claude-code)
 - [Manual Registrations Required](#manual-registrations-required)
 - [Keeping Your Project Updated](#keeping-your-project-updated)
 - [CI/CD Workflow Configuration](#cicd-workflow-configuration)
@@ -59,6 +60,226 @@ uv run ruff check .
 # Run type checking
 uv run basedpyright src/
 ```
+
+### 5. Generate Project Planning Documents
+
+Use Claude Code to generate comprehensive planning documents for your project:
+
+```bash
+# Open Claude Code and describe your project, then run:
+/plan <your detailed project description>
+```
+
+See [Project Planning with Claude Code](#project-planning-with-claude-code) below for the complete workflow.
+
+---
+
+## Project Planning with Claude Code
+
+This template includes an integrated AI-assisted project planning workflow that transforms your project concept into actionable development plans with proper git branch strategy.
+
+### Overview
+
+The planning workflow generates 4 core documents, then synthesizes them into a comprehensive project plan:
+
+```
+Project Description
+        │
+        ▼
+┌───────────────────────────────────────┐
+│   Step 1: Generate Planning Docs      │
+│   (project-planning skill)            │
+└───────────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│   project-vision.md (PVS)             │  What & Why
+│   tech-spec.md                        │  How (architecture)
+│   roadmap.md                          │  When (phases)
+│   adr/adr-001-*.md                    │  Key decisions
+└───────────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│   Step 2: Synthesize Project Plan     │
+│   (project-plan-synthesizer agent)    │
+└───────────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│   PROJECT-PLAN.md                     │  Actionable plan
+│   - Git branch strategy               │  with semantic
+│   - Phase deliverables                │  release alignment
+│   - TodoWrite checklist               │
+└───────────────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────────────┐
+│   Step 3: Start Development           │
+│   /git/milestone start                │
+└───────────────────────────────────────┘
+```
+
+### Step 1: Generate Planning Documents
+
+Describe your project and generate the 4 core documents:
+
+```bash
+# Using the /plan command (recommended)
+/plan I want to build a CLI tool for managing personal finances.
+The main users are individuals tracking expenses.
+Core features: expense tracking, budget categories, monthly reports.
+Technical constraints: must work offline, SQLite for storage.
+```
+
+**Or provide a more detailed description:**
+
+```
+Generate planning documents for this project:
+
+I'm building a REST API for inventory management. Target users are
+small business owners. Core features include product CRUD, stock
+tracking, low-stock alerts, and reporting. Must integrate with
+existing PostgreSQL database and support OAuth2 authentication.
+```
+
+**What gets created:**
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| Project Vision & Scope | `docs/planning/project-vision.md` | Problem, solution, scope, success metrics |
+| Technical Specification | `docs/planning/tech-spec.md` | Architecture, data model, APIs, security |
+| Development Roadmap | `docs/planning/roadmap.md` | Phased implementation plan |
+| Architecture Decision Records | `docs/planning/adr/adr-001-*.md` | Key technical decisions with rationale |
+
+**The project-planning skill will:**
+1. Analyze your project description
+2. Generate each document using templates
+3. Validate each document with AI consensus review
+4. Ensure documents cross-reference correctly
+5. Flag any assumptions needing your validation
+
+### Step 2: Synthesize into Project Plan
+
+After the 4 documents are generated, synthesize them into an actionable plan:
+
+```bash
+# Request synthesis
+"Synthesize my planning documents into a project plan"
+```
+
+**The project-plan-synthesizer agent will:**
+1. Read and validate all 4 source documents
+2. Extract key information from each document
+3. Lookup best practices via Context7 for your tech stack
+4. Map phases to semantic release-aligned git branches
+5. Validate with tiered consensus (multi-model AI review)
+6. Generate `docs/planning/PROJECT-PLAN.md`
+7. Create initial TodoWrite checklist for Phase 0
+
+**Output:** `docs/planning/PROJECT-PLAN.md` containing:
+- Git branch strategy for each phase
+- Consolidated risk register
+- Cross-referenced architecture decisions
+- Success criteria per phase
+- TodoWrite checklist for Phase 0
+
+### Git Branch Strategy (Semantic Release)
+
+Phases are automatically mapped to semantic release branch types:
+
+| Phase Focus | Branch Type | Version Impact | Example |
+|-------------|-------------|----------------|---------|
+| Foundation/Setup | `feat/` | Minor (0.X.0) | `feat/phase-0-foundation` |
+| Core Features | `feat/` | Minor (0.X.0) | `feat/phase-1-core` |
+| Additional Features | `feat/` | Minor (0.X.0) | `feat/phase-2-advanced` |
+| Performance | `perf/` | Patch (0.0.X) | `perf/phase-3-optimization` |
+| Documentation | `docs/` | None | `docs/phase-4-documentation` |
+| Bug Fixes | `fix/` | Patch (0.0.X) | `fix/phase-X-bugfixes` |
+
+### Step 3: Review and Start Development
+
+**Review the synthesized plan:**
+
+```bash
+# Review the generated plan
+cat docs/planning/PROJECT-PLAN.md
+
+# Verify:
+# - Phase deliverables match your expectations
+# - Git branch types align with semantic release
+# - Success criteria are measurable
+```
+
+**Start development with the milestone workflow:**
+
+```bash
+# Start Phase 0 (creates branch, sets up tracking)
+/git/milestone start feat/phase-0-foundation
+```
+
+**This will:**
+- Create the feature branch from main
+- Set up git worktree if parallel development is needed
+- Show semantic release impact for this branch type
+- Create TodoWrite list from phase deliverables
+
+### Phase Completion Workflow
+
+When you complete a phase:
+
+```bash
+# 1. Validate all commits match branch type
+/git/milestone complete
+
+# 2. Create PR with What the Diff summary
+/git/pr-prepare --include_wtd=true
+
+# 3. Merge PR (triggers semantic release if applicable)
+
+# 4. Start next phase
+/git/milestone start feat/phase-1-core
+```
+
+### Using Planning Documents During Development
+
+**Load context for a task:**
+
+```
+Load context from project-vision.md sections 2-3 and adr/adr-001-*.md,
+then implement [feature] per tech-spec.md section [X].
+```
+
+**Validate code against specs:**
+
+```
+Review this code against tech-spec.md section 6 (security).
+Flag any violations.
+```
+
+**Check phase progress:**
+
+```
+Review PROJECT-PLAN.md Phase 1 deliverables and update status.
+```
+
+### Document Update Guidelines
+
+| Document | Update When |
+|----------|-------------|
+| **Roadmap** | After completing tasks, adjusting timelines |
+| **ADR** | When making new architectural decisions |
+| **Tech Spec** | When architecture changes significantly |
+| **PVS** | When scope changes (rare) |
+| **PROJECT-PLAN.md** | After each phase completion |
+
+### Planning Resources
+
+- **Skill Reference**: `.claude/skills/project-planning/SKILL.md`
+- **Document Templates**: `.claude/skills/project-planning/templates/`
+- **Detailed Guidance**: `.claude/skills/project-planning/reference/`
+- **Git Milestone Workflow**: `.claude/skills/git/workflows/milestone.md`
+- **Project Plan Template**: `docs/planning/project-plan-template.md`
 
 ---
 

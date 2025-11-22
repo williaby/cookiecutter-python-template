@@ -185,7 +185,8 @@ if __name__ == "__main__":
     # Example of structured error logging
     def _raise_example_error() -> None:
         """Helper function to demonstrate error logging."""
-        raise ValueError("Example error for demonstration")
+        error_msg = "Example error for demonstration"
+        raise ValueError(error_msg)
 
     try:
         _raise_example_error()

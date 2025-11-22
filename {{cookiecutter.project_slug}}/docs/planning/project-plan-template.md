@@ -134,7 +134,37 @@ The project is developed in sequential phases, each with specific objectives, de
 | Phase 3 | Week 9-11 | 3 weeks | Optimization | ⏳ Planned |
 | Phase 4 | Week 12-13 | 2 weeks | Documentation | ⏳ Planned |
 
+### Git Branch Strategy for Phases
+
+Each phase should have its own development branch following semantic release conventions:
+
+```bash
+# Phase branches follow: feat/phase-{N}-{description}
+feat/phase-0-foundation    # Foundation work (triggers minor bump)
+feat/phase-1-core          # Core features (triggers minor bump)
+feat/phase-2-advanced      # Advanced features (triggers minor bump)
+perf/phase-3-optimization  # Performance work (triggers patch bump)
+docs/phase-4-documentation # Documentation (no release)
+
+# Start phase work with milestone skill (auto-creates branch/worktree)
+/git/milestone start feat/phase-1-core
+
+# Or manually for simple phases
+git checkout -b feat/phase-1-core
+```
+
+**Phase Completion Workflow**:
+1. Complete all deliverables in phase branch
+2. Run `/git/milestone complete` for validation
+3. Create PR with `/git/pr-prepare --include_wtd=true`
+4. Merge triggers semantic release (if applicable)
+5. Start next phase branch
+
+---
+
 ### Phase 0: Foundation & Setup (Week 1-2) ✅ **COMPLETE**
+
+**Branch**: `feat/phase-0-foundation`
 
 **Objectives**:
 - Establish project structure and configuration
@@ -169,6 +199,8 @@ The project is developed in sequential phases, each with specific objectives, de
 ---
 
 ### Phase 1: Core Features (Week 3-5) 🔄 **IN PROGRESS**
+
+**Branch**: `feat/phase-1-core`
 
 **Objectives**:
 - Implement core functionality
@@ -220,6 +252,8 @@ The project is developed in sequential phases, each with specific objectives, de
 
 ### Phase 2: Advanced Features (Week 6-8) 🚧 **PLANNED**
 
+**Branch**: `feat/phase-2-advanced`
+
 **Objectives**:
 - Add advanced/optional features
 - Performance optimization
@@ -260,6 +294,8 @@ The project is developed in sequential phases, each with specific objectives, de
 
 ### Phase 3: Optimization (Week 9-11) 🚧 **PLANNED**
 
+**Branch**: `perf/phase-3-optimization`
+
 **Objectives**:
 - Performance optimization
 - Code refactoring
@@ -299,6 +335,8 @@ The project is developed in sequential phases, each with specific objectives, de
 ---
 
 ### Phase 4: Documentation & Release (Week 12-13) ⏳ **PLANNED**
+
+**Branch**: `docs/phase-4-documentation`
 
 **Objectives**:
 - Complete documentation

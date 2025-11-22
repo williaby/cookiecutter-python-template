@@ -504,6 +504,99 @@ If `include_semantic_release=no`, a simpler tag-based release workflow is genera
 - Manually push tags (`git tag v1.0.0 && git push --tags`)
 - Workflow triggers on `v*.*.*` tags
 
+## CodeRabbit Integration
+
+When users create projects with `include_coderabbit=yes`, AI-powered code reviews are enabled.
+
+### What is CodeRabbit?
+
+CodeRabbit provides automated AI-powered code reviews for every pull request, catching issues before human reviewers see them.
+
+### Generated Files
+
+- `.coderabbit.yaml` - Configuration for review behavior and path-specific instructions
+
+### Features
+
+- **Automatic PR Reviews**: AI reviews every PR automatically
+- **Security Detection**: Identifies potential security vulnerabilities
+- **Code Quality**: Suggests improvements for readability and maintainability
+- **Path-Specific Instructions**: Custom review rules per directory
+- **Interactive**: Use `@coderabbitai` commands in PR comments
+
+### Setup Required
+
+1. Install the [CodeRabbit GitHub App](https://github.com/apps/coderabbitai)
+2. Grant access to your repository
+3. PRs will be automatically reviewed
+
+### Commands
+
+In PR comments, you can use:
+- `@coderabbitai summary` - Get a high-level summary
+- `@coderabbitai review` - Request a re-review
+- `@coderabbitai pause` - Pause reviews temporarily
+- `@coderabbitai resume` - Resume reviews
+- `@coderabbitai help` - Show all commands
+
+### Template Repository Configuration
+
+The template repository itself uses CodeRabbit (`.coderabbit.yaml` at root) with custom instructions for:
+- Hook file reviews (cross-platform compatibility, error handling)
+- Template file reviews (Jinja2 syntax, feature flag consistency)
+- Workflow reviews (security best practices)
+
+## Linear Integration
+
+When users create projects with `include_linear=yes`, project management integration is enabled.
+
+### What is Linear?
+
+Linear is a modern project management tool that integrates deeply with GitHub for issue tracking and project planning.
+
+### Features
+
+- **Bidirectional Sync**: Issues sync between GitHub and Linear
+- **Auto-Linking**: PRs automatically link to Linear issues
+- **Auto-Close**: Issues close when linked PRs merge
+- **Branch Naming**: Create branches directly from Linear issues
+
+### Setup Required
+
+1. Go to [Linear Settings > Integrations > GitHub](https://linear.app/settings/integrations/github)
+2. Connect your GitHub organization/account
+3. Select repositories to sync
+
+### Generated Files
+
+- `.github/PULL_REQUEST_TEMPLATE.md` - Template with Linear issue placeholder
+- `.github/ISSUE_TEMPLATE/*.yml` - Issue templates with Linear sync notes
+
+### PR Linking Syntax
+
+Use these keywords in PR descriptions or commit messages:
+```
+Closes ENG-123      # Closes issue when PR merges
+Fixes ENG-456       # Same as closes
+Refs ENG-789        # References without closing
+```
+
+Replace `ENG` with your Linear team key (configured via `linear_team_key` in cookiecutter).
+
+### Workflow Example
+
+1. **Create Issue**: Create issue in Linear (auto-assigns ID like `ENG-123`)
+2. **Create Branch**: Click "Create branch" in Linear or manually create with naming convention
+3. **Work & Commit**: Reference issue in commits: `feat: add login (ENG-123)`
+4. **Create PR**: Include `Closes ENG-123` in description
+5. **Merge**: Issue automatically closes in Linear when PR merges
+
+### Template Repository Configuration
+
+- Issue templates include Linear sync notices
+- PR template includes Linear issue placeholder
+- CodeRabbit config references Linear for knowledge base
+
 ## Type Checking with BasedPyright
 
 This template uses BasedPyright instead of MyPy for type checking:

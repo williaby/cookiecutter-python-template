@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+{%- if cookiecutter.include_linear == "yes" %}
+  - name: Linear Project Board
+    url: https://linear.app/
+    about: View our project roadmap and track issues in Linear
+{%- endif %}
+  - name: Documentation
+    url: {{ cookiecutter.docs_url }}
+    about: Check our documentation for usage guides and API reference
+  - name: Discussions
+    url: https://github.com/{{ cookiecutter.github_org_or_user }}/{{ cookiecutter.project_slug }}/discussions
+    about: Ask questions and share ideas in GitHub Discussions

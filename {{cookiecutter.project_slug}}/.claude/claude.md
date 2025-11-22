@@ -20,6 +20,50 @@
 **Author**: {{cookiecutter.author_name}} <{{cookiecutter.author_email}}>
 **Repository**: {{cookiecutter.repo_url}}
 
+## Project Planning Documents
+
+> **First-Time Setup**: If planning documents show "Awaiting Generation", see the [Project Setup Guide](../docs/PROJECT_SETUP.md#project-planning-with-claude-code).
+
+**Planning Documents** (in `docs/planning/`):
+- [project-vision.md](../docs/planning/project-vision.md) - Problem, solution, scope, success metrics
+- [tech-spec.md](../docs/planning/tech-spec.md) - Architecture, data model, APIs, security
+- [roadmap.md](../docs/planning/roadmap.md) - Phased implementation plan
+- [adr/](../docs/planning/adr/) - Architecture decisions with rationale
+- [PROJECT-PLAN.md](../docs/planning/PROJECT-PLAN.md) - Synthesized plan with git branches (after synthesis)
+
+**References**:
+- **Complete Workflow**: [Project Setup Guide](../docs/PROJECT_SETUP.md#project-planning-with-claude-code)
+- **Skill Reference**: `.claude/skills/project-planning/`
+
+### Quick Start
+
+```bash
+# 1. Generate planning documents
+/plan <your project description>
+
+# 2. Synthesize into project plan
+"Synthesize my planning documents into a project plan"
+
+# 3. Review docs/planning/PROJECT-PLAN.md
+
+# 4. Start development
+/git/milestone start feat/phase-0-foundation
+```
+
+### Using Planning Documents
+
+```
+# Load context for a task
+Load from project-vision.md sections 2-3 and adr/adr-001-*.md,
+then implement [feature] per tech-spec.md section [X].
+
+# Validate code against specs
+Review this code against tech-spec.md section 6 (security).
+
+# Check phase progress
+Review PROJECT-PLAN.md Phase 1 deliverables and update status.
+```
+
 ## Technology Stack
 
 - **Python**: {{cookiecutter.python_version}}
@@ -172,6 +216,24 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
+## Git Worktree Workflow
+
+> **Full Documentation**: See `~/.claude/CLAUDE.md` for complete worktree concepts, commands, and best practices.
+
+**Project-Specific Paths**:
+```bash
+# Worktree directory for this project
+../{{cookiecutter.project_slug}}-worktrees/
+
+# Quick reference commands
+git worktree add ../{{cookiecutter.project_slug}}-worktrees/feature-name -b feature/feature-name
+git worktree add ../{{cookiecutter.project_slug}}-worktrees/pr-42 origin/feature/pr-branch
+git worktree list
+git worktree remove ../{{cookiecutter.project_slug}}-worktrees/feature-name
+```
+
+**Remember**: Each worktree needs `uv sync --all-extras` after creation (worktrees share git but not virtualenvs).
+
 ## Common Tasks
 
 ### Add Dependency
@@ -210,6 +272,55 @@ uv run pytest tests/unit/test_example.py::test_function_name -v
 - ✅ Pre-commit hooks
 {% endif -%}
 
+{% if cookiecutter.include_coderabbit == "yes" or cookiecutter.include_linear == "yes" -%}
+## Third-Party Integrations
+
+{% if cookiecutter.include_coderabbit == "yes" -%}
+### CodeRabbit (AI Code Reviews)
+
+CodeRabbit provides automated AI-powered code reviews on every pull request.
+
+**Configuration**: `.coderabbit.yaml`
+
+**Features**:
+- Automatic review on PR creation
+- Security vulnerability detection
+- Code quality suggestions
+- Path-specific review instructions
+
+**Commands**:
+```bash
+# In PR comments:
+@coderabbitai summary      # Get high-level summary
+@coderabbitai review       # Request re-review
+@coderabbitai help         # Show available commands
+```
+
+**Setup**: Install the [CodeRabbit GitHub App](https://github.com/apps/coderabbitai)
+
+{% endif -%}
+{% if cookiecutter.include_linear == "yes" -%}
+### Linear (Project Management)
+
+Linear integration syncs issues between GitHub and Linear for streamlined project management.
+
+**PR Linking** (in PR description or commits):
+```
+Closes {{ cookiecutter.linear_team_key }}-123    # Closes issue when PR merges
+Fixes {{ cookiecutter.linear_team_key }}-456     # Same as closes
+Refs {{ cookiecutter.linear_team_key }}-789      # References without closing
+```
+
+**Workflow**:
+1. Create issue in Linear
+2. Create branch from Linear (auto-named)
+3. Reference issue in commits/PR
+4. Issue auto-closes when PR merges
+
+**Setup**: Connect GitHub in [Linear Settings](https://linear.app/settings/integrations/github)
+
+{% endif -%}
+{% endif -%}
 ## Troubleshooting
 
 ### Pre-commit Hooks Failing

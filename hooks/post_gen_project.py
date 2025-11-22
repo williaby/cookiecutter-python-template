@@ -109,6 +109,10 @@ def cleanup_conditional_files() -> None:
     if "{{ cookiecutter.include_renovate }}" == "no":
         remove_file(Path("renovate.json"))
 
+    # Remove CodeRabbit if not needed
+    if "{{ cookiecutter.include_coderabbit }}" == "no":
+        remove_file(Path(".coderabbit.yaml"))
+
     # Remove REUSE if not needed
     if "{{ cookiecutter.use_reuse_licensing }}" == "no":
         remove_file(Path("REUSE.toml"))
@@ -131,8 +135,7 @@ def cleanup_conditional_files() -> None:
         # Remove api directory if empty
         api_dir = Path("src/{{ cookiecutter.project_slug }}/api")
         if api_dir.exists() and not any(
-            f.name != "__pycache__" and f.name != "__init__.py"
-            for f in api_dir.iterdir()
+            f.name != "__pycache__" and f.name != "__init__.py" for f in api_dir.iterdir()
         ):
             remove_dir(api_dir)
 
@@ -208,9 +211,7 @@ def setup_claude_subtree() -> None:
     # Check if user wants to add the subtree
     try:
         response = (
-            input("\n  Add standard Claude configuration via git subtree? (Y/n): ")
-            .strip()
-            .lower()
+            input("\n  Add standard Claude configuration via git subtree? (Y/n): ").strip().lower()
         )
     except (EOFError, KeyboardInterrupt):
         print("\n  Skipping Claude standards setup.")
@@ -277,9 +278,7 @@ def setup_pre_commit() -> None:
         else:
             print("  ⚠ Failed to install pre-commit hooks")
     else:
-        print(
-            "  ⚠ pre-commit not found - run 'uv sync' and 'uv run pre-commit install'"
-        )
+        print("  ⚠ pre-commit not found - run 'uv sync' and 'uv run pre-commit install'")
 
 
 def create_initial_directories() -> None:
@@ -328,9 +327,7 @@ def render_workflow_templates() -> None:
     }
 
     rendered_count = 0
-    workflow_files = list(workflows_dir.glob("*.yml")) + list(
-        workflows_dir.glob("*.yaml")
-    )
+    workflow_files = list(workflows_dir.glob("*.yml")) + list(workflows_dir.glob("*.yaml"))
     workflow_files.append(workflows_dir / "README.md")  # Also render README
 
     for workflow_file in workflow_files:
@@ -347,9 +344,15 @@ def render_workflow_templates() -> None:
                 # Build patterns using separate strings to avoid Jinja2 interpretation
                 open_brace = "{" + "{"
                 close_brace = "}" + "}"
-                pattern1 = open_brace + open_brace + f" cookiecutter.{key} " + close_brace + close_brace
-                pattern2 = open_brace + open_brace + f"cookiecutter.{key}" + close_brace + close_brace
-                pattern3 = open_brace + open_brace + f"  cookiecutter.{key}  " + close_brace + close_brace
+                pattern1 = (
+                    open_brace + open_brace + f" cookiecutter.{key} " + close_brace + close_brace
+                )
+                pattern2 = (
+                    open_brace + open_brace + f"cookiecutter.{key}" + close_brace + close_brace
+                )
+                pattern3 = (
+                    open_brace + open_brace + f"  cookiecutter.{key}  " + close_brace + close_brace
+                )
                 content = content.replace(pattern1, value)
                 content = content.replace(pattern2, value)
                 content = content.replace(pattern3, value)
@@ -452,13 +455,9 @@ def setup_claude_user_settings() -> None:
                 if installed_items:
                     print(f"  ✓ Installed: {', '.join(installed_items)}")
 
-                print(
-                    "\n  ✅ User-level settings are now available to all Claude Code sessions!"
-                )
+                print("\n  ✅ User-level settings are now available to all Claude Code sessions!")
             else:
-                print(
-                    "  ⚠ Failed to clone settings repo. You can manually set up later:"
-                )
+                print("  ⚠ Failed to clone settings repo. You can manually set up later:")
                 print(f"     git clone {repo_url} {install_path}")
 
         except (EOFError, KeyboardInterrupt):
@@ -481,6 +480,8 @@ def print_success_message() -> None:
     include_caching = "{{ cookiecutter.include_caching }}" == "yes"
     include_load_testing = "{{ cookiecutter.include_load_testing }}" == "yes"
     include_semantic_release = "{{ cookiecutter.include_semantic_release }}" == "yes"
+    include_coderabbit = "{{ cookiecutter.include_coderabbit }}" == "yes"
+    include_linear = "{{ cookiecutter.include_linear }}" == "yes"
 
     print("\n" + "=" * 60)
     print(f"🎉 SUCCESS! {project_name} has been created!")
@@ -502,6 +503,10 @@ def print_success_message() -> None:
         optional_features.append("Load testing (Locust & k6)")
     if include_semantic_release:
         optional_features.append("Semantic Release (automated versioning)")
+    if include_coderabbit:
+        optional_features.append("CodeRabbit (AI code reviews)")
+    if include_linear:
+        optional_features.append("Linear (project management integration)")
 
     if optional_features:
         print("\n✨ Optional features included:")
@@ -571,6 +576,20 @@ def print_success_message() -> None:
         print("     Manual release: gh workflow run 'Semantic Release'")
         print("     PyPI publishing requires trusted publisher setup")
 
+    if include_coderabbit:
+        print("\n  🐰 CodeRabbit:")
+        print("     AI-powered code reviews are configured")
+        print("     Install CodeRabbit GitHub App: https://github.com/apps/coderabbitai")
+        print("     Reviews will run automatically on PRs")
+        print("     Use @coderabbitai in PR comments to interact")
+
+    if include_linear:
+        print("\n  📋 Linear:")
+        print("     Project management integration is configured")
+        print("     Connect your repo: https://linear.app/settings/integrations/github")
+        print("     Link PRs to issues: 'Closes ENG-123' in PR description")
+        print("     Issues sync bidirectionally with GitHub")
+
     print("\n" + "=" * 60)
     print("📚 Documentation:")
     print("  - README.md: Project overview and quick start")
@@ -591,7 +610,7 @@ def run_code_fixes() -> None:
 
     # Check if uv is available (it should be from template generation)
     if not shutil.which("uv"):
-        print("  ℹ Skipping code fixes (uv not found)")
+        print("  - Skipping code fixes (uv not found)")
         return
 
     # Run Ruff auto-fix
@@ -600,7 +619,7 @@ def run_code_fixes() -> None:
     if success:
         print("  ✓ Ruff auto-fix completed")
     else:
-        print("  ℹ Ruff auto-fix completed with some issues (review manually)")
+        print("  - Ruff auto-fix completed with some issues (review manually)")
 
 
 def main() -> None:

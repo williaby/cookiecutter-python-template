@@ -4,6 +4,7 @@
   "project_short_description": "A short description of the project",
   "author_name": "Your Name",
   "author_email": "you@example.com",
+  "copyright_year": "{% now 'local', '%Y' %}",
   "github_username": "yourusername",
   "github_org_or_user": "{{ cookiecutter.github_username }}",
   "version": "0.1.0",
@@ -72,6 +73,11 @@
   "include_sonarcloud": ["no", "yes"],
   "sonarcloud_organization": "your-org",
   "include_renovate": ["yes", "no"],
+
+  "_comment_integrations": "Third-Party Integrations",
+  "include_coderabbit": ["yes", "no"],
+  "include_linear": ["no", "yes"],
+  "linear_team_key": "",
 
   "_comment_security": "Enhanced Security (from pp-security-master analysis)",
   "include_compliance_docs": ["yes", "no"],

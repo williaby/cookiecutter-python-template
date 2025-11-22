@@ -1,0 +1,193 @@
+---
+# CodeRabbit Configuration for Cookiecutter Python Template
+# https://docs.coderabbit.ai/reference/configuration
+#
+# This configuration is for the template repository itself.
+# Generated projects will have their own .coderabbit.yaml.
+#
+# Philosophy: CodeRabbit complements CI/CD, pre-commit, and Copilot
+# - CI/CD: Runs tests, linters → CodeRabbit: Contextual understanding of changes
+# - Pre-commit: Formats code → CodeRabbit: Reviews logic and architecture
+# - Copilot: Suggests code → CodeRabbit: Reviews entire PR holistically
+
+language: en-US
+
+# Early access features - enables latest capabilities
+early_access: true
+
+# Reviews configuration
+reviews:
+  # Review profile: assertive = more thorough, catches more issues
+  profile: assertive
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - master
+      - develop
+
+  # Request changes workflow - makes reviews actionable
+  # When true, CodeRabbit will "Request Changes" instead of just commenting
+  request_changes_workflow: true
+
+  # High-level summary - executive overview of changes
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+
+  # Auto-generate PR titles following conventional commits
+  auto_title_placeholder: "@coderabbitai title"
+  auto_title_instructions: |
+    Use conventional commits format: <type>(<scope>): <description>
+    Types: feat, fix, docs, refactor, test, chore
+    Scopes: template, hooks, config, ci, docs
+
+  # Poem feature - adds a creative touch to reviews
+  poem: true
+
+  # Review status - shows progress indicator
+  review_status: true
+
+  # Collapse walkthrough - false = expanded for visibility
+  collapse_walkthrough: false
+
+  # Sequence diagrams - visualizes complex control flow (unique to CodeRabbit)
+  sequence_diagrams: true
+
+  # Changed files summary - overview table
+  changed_files_summary: true
+
+  # Code review effort estimate - helps human reviewers prioritize (1-5 scale)
+  # This is unique - CI/CD can't estimate human review effort
+  estimate_code_review_effort: true
+
+  # Related issues/PRs - links similar past work (unique to CodeRabbit)
+  related_issues: true
+  related_prs: true
+
+  # Linked issue assessment - validates PR addresses linked issues
+  assess_linked_issues: true
+
+  # Auto-labeling based on PR content
+  suggested_labels: true
+  auto_apply_labels: true
+  labeling_instructions:
+    - label: "template"
+      instructions: "Apply when changes affect template files"
+    - label: "hooks"
+      instructions: "Apply when changes affect hook files"
+    - label: "ci"
+      instructions: "Apply when changes affect .github/workflows/ files"
+    - label: "documentation"
+      instructions: "Apply when changes affect documentation"
+    - label: "breaking-change"
+      instructions: "Apply when changes break compatibility"
+    - label: "new-feature"
+      instructions: "Apply when adding new variables or features"
+
+  # Path filters - skip generated/cached files
+  path_filters:
+    - "!**/*.lock"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+    - "!**/node_modules/**"
+    - "!**/.venv/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/__pycache__/**"
+    - "!**/.mypy_cache/**"
+    - "!**/.pytest_cache/**"
+    - "!**/.ruff_cache/**"
+
+  # Path-specific instructions - contextual review guidance
+  path_instructions:
+    - path: "hooks/**/*.py"
+      instructions: |
+        Review hook files with extra scrutiny for:
+        - Error handling and edge cases (hooks run during project generation)
+        - Cross-platform compatibility (Windows/Linux/macOS path handling)
+        - Proper cleanup of conditional files (feature flags)
+        - Clear user feedback messages (print statements)
+        - No secrets or credentials
+        - Idempotency (safe to run multiple times)
+
+    - path: "{{cookiecutter.project_slug}}/**"
+      instructions: |
+        Review template files for:
+        - Correct Jinja2 syntax ({{ cookiecutter.variable }})
+        - Proper use of conditionals ({% if %}, {% endif %}, {%- for whitespace)
+        - Feature flag consistency with cookiecutter.json
+        - No hardcoded paths, usernames, or organization names
+        - Backwards compatibility with existing template users
+
+    - path: "{{cookiecutter.project_slug}}/.github/workflows/**"
+      instructions: |
+        Review workflow templates for:
+        - Proper Jinja2 variable usage (avoid raw {{ }} syntax)
+        - Security best practices (minimal permissions, pinned action versions)
+        - Correct conditional logic for optional features
+        - Job dependencies and artifact handling
+        - Secrets should use cookiecutter variables, not hardcoded names
+
+    - path: "cookiecutter.json"
+      instructions: |
+        Review cookiecutter.json changes for:
+        - Valid JSON syntax
+        - Sensible default values
+        - Clear variable naming conventions
+        - Proper ordering (related variables grouped)
+        - Documentation comments where helpful
+
+    - path: "*.md"
+      instructions: |
+        Review documentation for:
+        - Accuracy with current implementation
+        - Clear instructions and examples
+        - Proper markdown formatting
+        - No broken links
+        - Updated when related code changes
+
+  # Finishing touches - suggestions for polish
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+  # Tools configuration - CodeRabbit runs these independently of CI
+  # Purpose: Provide inline context during review, not replace CI checks
+  tools:
+    ruff:
+      enabled: true
+    gitleaks:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+
+# Chat configuration - interactive responses
+chat:
+  auto_reply: true
+
+# Knowledge base - learns from codebase and team patterns
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  jira:
+    project_keys: []
+  linear:
+    team_keys: []
+  pull_requests:
+    scope: auto
+
+# Code generation settings
+code_generation:
+  docstrings:
+    language: en-US

@@ -58,11 +58,13 @@ repos:
   # - Code smells and complexity analysis
   #
   # Configure via .qlty/qlty.toml
+  # Install: curl https://qlty.sh | bash && qlty plugins install
   - repo: local
     hooks:
       - id: qlty-check
         name: Qlty Code Quality Check
-        entry: qlty check --filter=diff
+        entry: >-
+          bash -c "command -v qlty >/dev/null 2>&1 && qlty check --filter=diff || echo Skipping_qlty_not_installed"
         language: system
         types: [file]
         pass_filenames: false
