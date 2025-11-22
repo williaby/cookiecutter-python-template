@@ -125,6 +125,7 @@ def cleanup_conditional_files() -> None:
         remove_file(Path("docker-compose.yml"))
         remove_file(Path("docker-compose.prod.yml"))
         remove_file(Path(".dockerignore"))
+        remove_file(Path(".github/workflows/container-security.yml"))
 
     # Remove health check endpoints if not needed or if no API framework
     if (
