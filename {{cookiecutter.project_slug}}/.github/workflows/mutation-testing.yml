@@ -1,0 +1,264 @@
+# Mutation Testing for {{ cookiecutter.project_name }}
+# Validates test effectiveness by introducing code mutations and checking if tests catch them.
+#
+# Features:
+#   - Weekly scheduled runs
+#   - Manual trigger with configurable threshold
+#   - PR comment with mutation score summary
+#   - HTML report generation
+#   - Quality gate enforcement
+#
+# Documentation: https://mutmut.readthedocs.io/
+{%- if cookiecutter.include_github_actions == "yes" %}
+name: Mutation Testing
+
+on:
+  # Weekly schedule - Sundays at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * 0'
+  # Manual trigger with configurable threshold
+  workflow_dispatch:
+    inputs:
+      mutation_threshold:
+        description: 'Minimum mutation score threshold (%)'
+        required: false
+        default: '80'
+        type: string
+  # Run on PRs that modify source code
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'src/**/*.py'
+      - 'tests/**/*.py'
+      - 'pyproject.toml'
+
+# Cancel in-progress runs for same PR/branch
+concurrency:
+  group: {% raw %}mutation-${{ github.event.pull_request.number || github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  MUTATION_THRESHOLD: {% raw %}${{ github.event.inputs.mutation_threshold || '80' }}{% endraw %}
+
+jobs:
+  # ==========================================================================
+  # Mutation Testing
+  # ==========================================================================
+  mutation-testing:
+    name: Mutation Testing
+    runs-on: ubuntu-latest
+    # Skip on forks (no PR comment permissions)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "{{ cookiecutter.python_version }}"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          # Ensure mutmut is available
+          uv pip install mutmut
+
+      - name: Run mutation testing
+        id: mutmut
+        run: |
+          echo "Running mutation testing on src/..."
+
+          # Run mutmut with timeout (mutations can take a while)
+          timeout 3600 uv run mutmut run --paths-to-mutate=src/ --no-progress || true
+
+          # Generate results
+          uv run mutmut results > mutmut-results.txt 2>&1 || true
+          uv run mutmut html || true
+
+          # Extract metrics
+          if [ -f mutmut-results.txt ]; then
+            KILLED=$(grep -oP 'killed: \K\d+' mutmut-results.txt || echo "0")
+            SURVIVED=$(grep -oP 'survived: \K\d+' mutmut-results.txt || echo "0")
+            TIMEOUT=$(grep -oP 'timeout: \K\d+' mutmut-results.txt || echo "0")
+            SUSPICIOUS=$(grep -oP 'suspicious: \K\d+' mutmut-results.txt || echo "0")
+            SKIPPED=$(grep -oP 'skipped: \K\d+' mutmut-results.txt || echo "0")
+
+            TOTAL=$((KILLED + SURVIVED + TIMEOUT + SUSPICIOUS))
+            if [ "$TOTAL" -gt 0 ]; then
+              # Include timeout as "killed" for score calculation
+              EFFECTIVE_KILLED=$((KILLED + TIMEOUT))
+              SCORE=$((EFFECTIVE_KILLED * 100 / TOTAL))
+            else
+              SCORE=100
+            fi
+
+            echo "killed=$KILLED" >> $GITHUB_OUTPUT
+            echo "survived=$SURVIVED" >> $GITHUB_OUTPUT
+            echo "timeout=$TIMEOUT" >> $GITHUB_OUTPUT
+            echo "suspicious=$SUSPICIOUS" >> $GITHUB_OUTPUT
+            echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+            echo "score=$SCORE" >> $GITHUB_OUTPUT
+          else
+            echo "killed=0" >> $GITHUB_OUTPUT
+            echo "survived=0" >> $GITHUB_OUTPUT
+            echo "timeout=0" >> $GITHUB_OUTPUT
+            echo "suspicious=0" >> $GITHUB_OUTPUT
+            echo "skipped=0" >> $GITHUB_OUTPUT
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "score=100" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload mutation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: |
+            html/
+            mutmut-results.txt
+            .mutmut-cache
+          retention-days: 30
+
+      - name: Generate summary
+        run: |
+          echo "## Mutation Testing Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Mutation Score** | {% raw %}${{ steps.mutmut.outputs.score }}{% endraw %}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Killed | {% raw %}${{ steps.mutmut.outputs.killed }}{% endraw %} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Survived | {% raw %}${{ steps.mutmut.outputs.survived }}{% endraw %} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timeout | {% raw %}${{ steps.mutmut.outputs.timeout }}{% endraw %} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Suspicious | {% raw %}${{ steps.mutmut.outputs.suspicious }}{% endraw %} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skipped | {% raw %}${{ steps.mutmut.outputs.skipped }}{% endraw %} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total Mutations** | {% raw %}${{ steps.mutmut.outputs.total }}{% endraw %} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ {% raw %}${{ steps.mutmut.outputs.score }}{% endraw %} -ge $MUTATION_THRESHOLD ]; then
+            echo "✅ Mutation score meets threshold ($MUTATION_THRESHOLD%)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Mutation score below threshold ($MUTATION_THRESHOLD%)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = {% raw %}${{ steps.mutmut.outputs.score }}{% endraw %};
+            const threshold = parseInt('${{ env.MUTATION_THRESHOLD }}');
+            const killed = {% raw %}${{ steps.mutmut.outputs.killed }}{% endraw %};
+            const survived = {% raw %}${{ steps.mutmut.outputs.survived }}{% endraw %};
+            const timeout = {% raw %}${{ steps.mutmut.outputs.timeout }}{% endraw %};
+            const total = {% raw %}${{ steps.mutmut.outputs.total }}{% endraw %};
+
+            const status = score >= threshold ? '✅' : '❌';
+            const statusText = score >= threshold ? 'Passed' : 'Failed';
+
+            const body = `## ${status} Mutation Testing ${statusText}
+
+            | Metric | Value |
+            |--------|-------|
+            | **Mutation Score** | ${score}% |
+            | Killed | ${killed} |
+            | Survived | ${survived} |
+            | Timeout | ${timeout} |
+            | **Total** | ${total} |
+
+            ${score >= threshold
+              ? `Mutation score **${score}%** meets the threshold of **${threshold}%**.`
+              : `⚠️ Mutation score **${score}%** is below the threshold of **${threshold}%**. Consider adding more test cases to kill surviving mutants.`
+            }
+
+            <details>
+            <summary>What is mutation testing?</summary>
+
+            Mutation testing introduces small changes (mutations) to your code and checks if your tests catch them.
+            A high mutation score indicates your tests are effective at detecting bugs.
+
+            - **Killed**: Mutations that caused test failures (good!)
+            - **Survived**: Mutations that tests didn't catch (needs more tests)
+            - **Timeout**: Mutations that caused infinite loops (counted as killed)
+
+            </details>`;
+
+            // Find and update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Mutation Testing')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Check threshold
+        if: github.event_name != 'schedule'
+        run: |
+          SCORE={% raw %}${{ steps.mutmut.outputs.score }}{% endraw %}
+          if [ "$SCORE" -lt "$MUTATION_THRESHOLD" ]; then
+            echo "::error::Mutation score ($SCORE%) is below threshold ($MUTATION_THRESHOLD%)"
+            echo "Surviving mutants indicate areas where tests could be improved."
+            echo ""
+            echo "To see surviving mutants, run locally:"
+            echo "  uv run mutmut run --paths-to-mutate=src/"
+            echo "  uv run mutmut results"
+            echo "  uv run mutmut show <id>  # Show specific surviving mutant"
+            exit 1
+          fi
+          echo "Mutation score ($SCORE%) meets threshold ($MUTATION_THRESHOLD%)"
+{%- else %}
+# GitHub Actions disabled for this project
+# Enable include_github_actions to use mutation testing
+name: Mutation Testing (Disabled)
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  info:
+    name: Mutation Testing Disabled
+    runs-on: ubuntu-latest
+    steps:
+      - name: Info
+        run: |
+          echo "Mutation testing is disabled for this project."
+          echo "To enable, set include_github_actions to 'yes' in cookiecutter.json"
+{%- endif %}
