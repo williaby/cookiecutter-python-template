@@ -11,7 +11,7 @@
 ci:
   autoupdate_schedule: monthly
   autofix_prs: true
-  skip: [validate-front-matter, qlty-check]  # Skip local-only hooks
+  skip: [validate-front-matter, qlty-check, trufflehog]  # Skip local-only hooks
 
 repos:
   # ============================================================================
@@ -42,6 +42,53 @@ repos:
         stages: [pre-commit]
       - id: mixed-line-ending
         args: ['--fix=lf']
+        stages: [pre-commit]
+      - id: debug-statements
+        stages: [pre-commit]
+      - id: check-executables-have-shebangs
+        stages: [pre-commit]
+      - id: check-shebang-scripts-are-executable
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Secret Detection - TruffleHog
+  # ============================================================================
+  # Advanced secret detection beyond detect-private-key
+  # Detects API keys, tokens, credentials, and other secrets
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.63.11
+    hooks:
+      - id: trufflehog
+        entry: trufflehog filesystem --fail --no-update .
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Conventional Commits Enforcement
+  # ============================================================================
+  # Enforces conventional commit message format for semantic versioning
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  # ============================================================================
+  # pyproject.toml Validation
+  # ============================================================================
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.20.2
+    hooks:
+      - id: validate-pyproject
+        stages: [pre-commit]
+
+  # ============================================================================
+  # GitHub Workflow Validation
+  # ============================================================================
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.29.4
+    hooks:
+      - id: check-github-workflows
         stages: [pre-commit]
 
   # ============================================================================

@@ -1,24 +1,198 @@
 {%- if cookiecutter.include_github_actions == "yes" %}
 # PR Validation for {{ cookiecutter.project_name }}
-# Validates dependency changes and requirements synchronization
+# Comprehensive pull request validation including security, quality, and compliance checks.
 #
-# This workflow ensures that when uv.lock changes, the requirements files
-# are properly updated to maintain compatibility with pip-based deployments.
+# Features:
+#   - Dependency vulnerability review
+#   - License compliance checking
+#   - Dead code detection (vulture)
+#   - Python vulnerability audit (pip-audit)
+#   - PR size labeling
+#   - Requirements synchronization validation
+#   - Lock file integrity checks
 
 name: PR Validation
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - main
       - master
       - develop
+
+# Cancel in-progress runs for same PR
+concurrency:
+  group: {% raw %}pr-validation-${{ github.event.pull_request.number }}{% endraw %}
+  cancel-in-progress: true
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
+  # ==========================================================================
+  # Dependency Security Review
+  # ==========================================================================
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          # Deny licenses that are incompatible with most projects
+          deny-licenses: GPL-3.0, AGPL-3.0, SSPL-1.0, BUSL-1.1
+          # Allow common permissive licenses
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, 0BSD, Unlicense, CC0-1.0
+
+  # ==========================================================================
+  # License Compliance Check
+  # ==========================================================================
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "{{ cookiecutter.python_version }}"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Check licenses
+        run: |
+          uv run pip install pip-licenses
+          echo "## License Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          uv run pip-licenses --format=markdown >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          # Fail on problematic licenses
+          uv run pip-licenses --fail-on="GPL-3.0-only;AGPL-3.0-only;GPL-3.0-or-later;AGPL-3.0-or-later" || {
+            echo "::error::Found dependencies with incompatible licenses"
+            exit 1
+          }
+
+  # ==========================================================================
+  # Dead Code Detection
+  # ==========================================================================
+  dead-code:
+    name: Dead Code Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "{{ cookiecutter.python_version }}"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run vulture
+        run: |
+          echo "## Dead Code Report" >> $GITHUB_STEP_SUMMARY
+          uv run vulture src/ --min-confidence 90 | tee vulture-report.txt || true
+          if [ -s vulture-report.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat vulture-report.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "::warning::Potential dead code detected. Review vulture report."
+          else
+            echo "No dead code detected with 90% confidence." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ==========================================================================
+  # Python Vulnerability Audit
+  # ==========================================================================
+  pip-audit:
+    name: Pip Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "{{ cookiecutter.python_version }}"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run pip-audit
+        run: |
+          echo "## Vulnerability Report" >> $GITHUB_STEP_SUMMARY
+          uv run pip-audit --desc on --format markdown >> $GITHUB_STEP_SUMMARY 2>&1 || {
+            echo "::error::Vulnerabilities detected in dependencies"
+            exit 1
+          }
+
+  # ==========================================================================
+  # PR Size Labeling
+  # ==========================================================================
+  pr-size:
+    name: PR Size Label
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Label PR size
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+          xs_label: 'size/XS'
+          xs_max_size: 10
+          s_label: 'size/S'
+          s_max_size: 100
+          m_label: 'size/M'
+          m_max_size: 500
+          l_label: 'size/L'
+          l_max_size: 1000
+          xl_label: 'size/XL'
+          fail_if_xl: false
+          message_if_xl: >
+            This PR is quite large. Consider breaking it into smaller PRs for easier review.
+          files_to_ignore: |
+            uv.lock
+            *.lock
+            *.md
+            docs/**
+
+  # ==========================================================================
+  # Requirements Sync Validation
+  # ==========================================================================
   validate-requirements:
     name: Validate Requirements Sync
     runs-on: ubuntu-latest
@@ -124,6 +298,78 @@ jobs:
             echo "::warning::Security vulnerabilities found in dependencies"
             echo "Review the output above and update dependencies if needed"
           }
+
+  # ==========================================================================
+  # Validation Summary
+  # ==========================================================================
+  validation-summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-review, license-check, dead-code, pip-audit, pr-size, validate-requirements, validate-lockfile]
+    if: always()
+    steps:
+      - name: Check validation results
+        run: |
+          echo "## PR Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          {% raw %}
+          # Check each job result
+          if [ "${{ needs.dependency-review.result }}" == "success" ]; then
+            echo "✅ Dependency Review: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Dependency Review: ${{ needs.dependency-review.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.license-check.result }}" == "success" ]; then
+            echo "✅ License Compliance: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ License Compliance: ${{ needs.license-check.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.dead-code.result }}" == "success" ]; then
+            echo "✅ Dead Code Check: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Dead Code Check: ${{ needs.dead-code.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.pip-audit.result }}" == "success" ]; then
+            echo "✅ Pip Audit: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Pip Audit: ${{ needs.pip-audit.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.pr-size.result }}" == "success" ]; then
+            echo "✅ PR Size: Labeled" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ PR Size: ${{ needs.pr-size.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.validate-requirements.result }}" == "success" ]; then
+            echo "✅ Requirements Sync: Valid" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Requirements Sync: ${{ needs.validate-requirements.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.validate-lockfile.result }}" == "success" ]; then
+            echo "✅ Lock File: Valid" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Lock File: ${{ needs.validate-lockfile.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fail if critical checks failed
+          if [ "${{ needs.dependency-review.result }}" == "failure" ] || \
+             [ "${{ needs.license-check.result }}" == "failure" ] || \
+             [ "${{ needs.pip-audit.result }}" == "failure" ] || \
+             [ "${{ needs.validate-lockfile.result }}" == "failure" ]; then
+            echo ""
+            echo "❌ Critical validation checks failed. Please review and fix issues." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          {% endraw %}
+
+          echo ""
+          echo "✅ All critical validation checks passed!" >> $GITHUB_STEP_SUMMARY
 {%- else %}
 # PR Validation workflow - NOT CONFIGURED
 # To enable this workflow, set include_github_actions to "yes" in cookiecutter.json

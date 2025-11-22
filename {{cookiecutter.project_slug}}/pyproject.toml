@@ -91,6 +91,8 @@ dev = [
     "ruff>=0.9.0",
     "basedpyright>=1.18.0",  # Stricter type checker (replaces mypy)
     "bandit>=1.7.0",
+    "vulture>=2.11",  # Dead code detection
+    "pip-audit>=2.7.0",  # Python vulnerability scanning
 
     # Pre-commit
     {% if cookiecutter.use_pre_commit == "yes" -%}
@@ -581,6 +583,30 @@ tests = [
     "B323",  # unverified_ftp
     "B324",  # hashlib
     # B325 removed - invalid test ID in current Bandit version
+]
+
+# Vulture Configuration (Dead Code Detection)
+# Detects unused code to maintain clean codebase
+# Run: uv run vulture src/
+[tool.vulture]
+min_confidence = 80
+paths = ["src/"]
+exclude = [
+    "tests/",
+    "docs/",
+    ".venv/",
+    "venv/",
+    "build/",
+    "dist/",
+]
+# Whitelist common false positives
+ignore_names = [
+    "visit_*",  # AST visitor methods
+    "setUp",
+    "tearDown",
+    "setUpClass",
+    "tearDownClass",
+    "__*__",  # Magic methods
 ]
 
 # UV Configuration
