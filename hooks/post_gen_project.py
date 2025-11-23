@@ -59,6 +59,12 @@ def run_command(cmd: list[str], check: bool = True) -> bool:
         return True
     except subprocess.CalledProcessError:
         return False
+    except FileNotFoundError:
+        # Command not found (e.g., pre-commit not installed)
+        return False
+    except OSError:
+        # Other OS-level errors (permission denied, etc.)
+        return False
 
 
 def cleanup_conditional_files() -> None:
@@ -653,16 +659,39 @@ def ensure_trailing_newlines() -> None:
 
     # File extensions to process (text files only)
     text_extensions = {
-        ".py", ".md", ".txt", ".yml", ".yaml", ".json", ".toml",
-        ".cfg", ".ini", ".sh", ".bash", ".zsh", ".gitignore",
-        ".gitattributes", ".editorconfig", ".env", ".example",
-        ".rst", ".css", ".html", ".js", ".ts", ".tsx", ".jsx",
+        ".py",
+        ".md",
+        ".txt",
+        ".yml",
+        ".yaml",
+        ".json",
+        ".toml",
+        ".cfg",
+        ".ini",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".gitignore",
+        ".gitattributes",
+        ".editorconfig",
+        ".env",
+        ".example",
+        ".rst",
+        ".css",
+        ".html",
+        ".js",
+        ".ts",
+        ".tsx",
+        ".jsx",
     }
 
     # Also include common dotfiles
     dotfiles = {
-        ".gitignore", ".gitattributes", ".editorconfig",
-        ".pre-commit-config.yaml", ".env.example",
+        ".gitignore",
+        ".gitattributes",
+        ".editorconfig",
+        ".pre-commit-config.yaml",
+        ".env.example",
     }
 
     fixed_count = 0
