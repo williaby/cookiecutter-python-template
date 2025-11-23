@@ -293,8 +293,7 @@ ignore = [
     "D107",   # missing docstring in __init__ (class docstring sufficient)
 
     # Type annotations (pragmatic exceptions)
-    "ANN101", # missing type annotation for self (deprecated in Python 3.11+)
-    "ANN102", # missing type annotation for cls (deprecated in Python 3.11+)
+    # Note: ANN101/ANN102 removed - rules deprecated in Ruff (self/cls annotation not needed)
     "ANN401", # dynamically typed expressions (Any) - sometimes necessary
 
     # Pylint rules (too strict for all cases)
@@ -564,7 +563,7 @@ tests = [
     "B306",  # mktemp_q
     "B307",  # eval
     "B308",  # mark_safe
-    "B309",  # httpsconnection
+    # B309 removed - deprecated in Bandit 1.8+
     "B310",  # urlopen
     "B311",  # random
     "B312",  # telnetlib
@@ -575,12 +574,11 @@ tests = [
     "B317",  # xml_bad_sax
     "B318",  # xml_bad_pulldom
     "B319",  # xml_bad_etree
-    "B320",  # xml_bad_etree_iterparse
+    # B320 removed - deprecated in Bandit 1.8+
     "B321",  # pickle_load
-    "B322",  # unverified_context
+    # B322 removed - deprecated in Bandit 1.8+
     "B323",  # unverified_ftp
     "B324",  # hashlib
-    # B325 removed - invalid test ID in current Bandit version
 ]
 
 # UV Configuration

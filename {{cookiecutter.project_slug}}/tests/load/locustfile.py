@@ -29,7 +29,7 @@ Features:
 from __future__ import annotations
 
 import json
-import random
+import random  # nosec B311 - random is used for load testing simulation, not security
 from typing import TYPE_CHECKING
 
 from locust import HttpUser, between, task
@@ -98,8 +98,8 @@ class APIUser(HttpUser):
         Simulates browsing/searching.
         """
         # Add query parameters for realism
-        page = random.randint(1, 10)
-        limit = random.choice([10, 20, 50])
+        page = random.randint(1, 10)  # nosec B311
+        limit = random.choice([10, 20, 50])  # nosec B311
 
         with self.client.get(
             f"/api/items?page={page}&limit={limit}",
@@ -128,7 +128,7 @@ class APIUser(HttpUser):
         Simulates viewing item details.
         """
         # Simulate random item IDs
-        item_id = random.randint(1, 1000)
+        item_id = random.randint(1, 1000)  # nosec B311
 
         with self.client.get(
             f"/api/items/{item_id}",
@@ -150,10 +150,10 @@ class APIUser(HttpUser):
         Simulates write operations (less frequent than reads).
         """
         payload = {
-            "name": f"Test Item {random.randint(1, 10000)}",
+            "name": f"Test Item {random.randint(1, 10000)}",  # nosec B311
             "description": "Load test item",
-            "price": round(random.uniform(10, 1000), 2),
-            "quantity": random.randint(1, 100),
+            "price": round(random.uniform(10, 1000), 2),  # nosec B311
+            "quantity": random.randint(1, 100),  # nosec B311
         }
 
         headers = {}

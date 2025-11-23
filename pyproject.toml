@@ -127,10 +127,8 @@ exclude_dirs = [
     ".venv",
     "tests",
 ]
-skips = [
-    "B404",  # import subprocess - acceptable in hooks
-    "B603",  # subprocess without shell=True - safe usage in hooks
-]
+# Skip subprocess-related checks - acceptable in template generation hooks
+skips = ["B404", "B603"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

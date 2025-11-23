@@ -63,7 +63,8 @@ class MonitoringSystemConfig:
 
         # Dashboard settings
         self.dashboard_enabled = config.get("dashboard_enabled", True)
-        self.dashboard_host = config.get("dashboard_host", "0.0.0.0")
+        # Default to localhost for security; override with "0.0.0.0" in production if needed
+        self.dashboard_host = config.get("dashboard_host", "127.0.0.1")  # nosec B104
         self.dashboard_port = config.get("dashboard_port", 8080)
 
         # External integrations
