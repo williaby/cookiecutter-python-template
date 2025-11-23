@@ -47,6 +47,12 @@
 [![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/{{ cookiecutter.github_org_or_user }}/.github/blob/main/CODE_OF_CONDUCT.md)
 
+| | |
+|---|---|
+| **Author** | {{cookiecutter.author_name}} |
+| **Created** | __PROJECT_CREATION_DATE__ |
+| **Repository** | [{{cookiecutter.github_org_or_user}}/{{cookiecutter.github_repo_name}}]({{cookiecutter.repo_url}}) |
+
 ---
 
 ## Overview

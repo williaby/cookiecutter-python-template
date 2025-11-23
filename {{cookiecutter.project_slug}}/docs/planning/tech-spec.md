@@ -1,4 +1,17 @@
-# Technical Implementation Spec: {{ '{{cookiecutter.project_name}}' }}
+---
+title: "{{cookiecutter.project_name}} - Technical Specification"
+schema_type: planning
+status: draft
+owner: core-maintainer
+purpose: "Document the technical architecture and implementation details."
+tags:
+  - planning
+  - architecture
+component: Development-Tools
+source: "/plan command generation"
+---
+
+# Technical Implementation Spec: {{cookiecutter.project_name}}
 
 > **Status**: Awaiting Generation
 

@@ -1,0 +1,113 @@
+# SLSA Provenance Generation for {{ cookiecutter.project_name }}
+# Generates SLSA Level 3 provenance attestations for published packages.
+#
+# This workflow builds the package, generates hashes, and calls the org-level
+# SLSA provenance workflow to create cryptographic attestations.
+#
+# Reference: https://slsa.dev/
+{%- if cookiecutter.include_github_actions == "yes" %}
+name: SLSA Provenance
+
+on:
+  # Trigger after successful release
+  workflow_run:
+    workflows: [{% if cookiecutter.include_semantic_release == "yes" %}"Semantic Release"{% else %}"Release"{% endif %}]
+    types: [completed]
+    branches: [main, master]
+  # Manual trigger for re-generating provenance
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to generate provenance for (e.g., 0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  actions: read
+  attestations: write
+
+jobs:
+  # ==========================================================================
+  # Build and Generate Hashes
+  # ==========================================================================
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    if: {% raw %}${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}{% endraw %}
+    outputs:
+      hashes: {% raw %}${{ steps.hashes.outputs.hashes }}{% endraw %}
+      version: {% raw %}${{ steps.version.outputs.version }}{% endraw %}
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "{{ cookiecutter.python_version }}"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "{% raw %}${{ github.event.inputs.version }}{% endraw %}" ]; then
+            VERSION="{% raw %}${{ github.event.inputs.version }}{% endraw %}"
+          else
+            VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build package
+        run: uv build
+
+      - name: Generate SHA256 hashes
+        id: hashes
+        run: |
+          cd dist
+          HASHES=$(sha256sum * | base64 -w0)
+          echo "hashes=$HASHES" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-{% raw %}${{ steps.version.outputs.version }}{% endraw %}
+          path: dist/
+          retention-days: 90
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'dist/*'
+
+  # ==========================================================================
+  # SLSA Level 3 Provenance (Org-Level Reusable Workflow)
+  # ==========================================================================
+  slsa:
+    name: SLSA Level 3
+    needs: [build]
+    uses: {{ cookiecutter.github_org_or_user }}/.github/.github/workflows/python-slsa.yml@main
+    with:
+      base64-subjects: {% raw %}${{ needs.build.outputs.hashes }}{% endraw %}
+      upload-assets: true
+    permissions:
+      id-token: write
+      contents: write
+      actions: read
+{%- else %}
+# GitHub Actions disabled for this project
+# Enable include_github_actions to use SLSA provenance generation
+{%- endif %}

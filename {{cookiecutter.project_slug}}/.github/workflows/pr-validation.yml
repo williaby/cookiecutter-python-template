@@ -1,33 +1,64 @@
-{%- if cookiecutter.include_github_actions == "yes" %}
 # PR Validation for {{ cookiecutter.project_name }}
-# Validates dependency changes and requirements synchronization
+# Comprehensive pull request validation using org-level workflow plus additional checks.
 #
-# This workflow ensures that when uv.lock changes, the requirements files
-# are properly updated to maintain compatibility with pip-based deployments.
-
+# This workflow calls the org-level PR validation workflow and adds supplementary
+# checks for dead code detection, changelog enforcement, and documentation links.
+{%- if cookiecutter.include_github_actions == "yes" %}
 name: PR Validation
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - main
       - master
       - develop
+
+# Cancel in-progress runs for same PR
+concurrency:
+  group: {% raw %}pr-validation-${{ github.event.pull_request.number }}{% endraw %}
+  cancel-in-progress: true
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  validate-requirements:
-    name: Validate Requirements Sync
-    runs-on: ubuntu-latest
+  # ==========================================================================
+  # Org-Level PR Validation (Core Checks)
+  # ==========================================================================
+  core-validation:
+    name: Core Validation
+    uses: {{ cookiecutter.github_org_or_user }}/.github/.github/workflows/python-pr-validation.yml@main
+    with:
+      python-version: '{{ cookiecutter.python_version }}'
+      source-directory: 'src'
+      test-directory: 'tests'
+      require-tests: true
+      require-conventional-commits: true
+      require-description: true
+      min-description-length: 50
+      check-breaking-changes: true
+      add-size-labels: true
+      coverage-threshold: {{ cookiecutter.code_coverage_target }}
+    secrets: inherit
 
+  # ==========================================================================
+  # Additional Checks (Template-Specific)
+  # ==========================================================================
+
+  # Dead Code Detection with Vulture
+  dead-code:
+    name: Dead Code Check
+    runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0  # Full history for branch comparison
 
       - name: Set up Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
@@ -40,90 +71,136 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: Check if uv.lock changed
-        id: uv-changed
-        run: |
-          # Get the base branch for comparison
-          BASE_BRANCH="{{ '${{' }} github.event.pull_request.base.ref {{ '}}' }}"
+      - name: Install dependencies
+        run: uv sync --all-extras
 
-          # Check if uv.lock has changes
-          if git diff --name-only "origin/${BASE_BRANCH}...HEAD" | grep -q "uv.lock"; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "uv.lock has changes in this PR"
+      - name: Run vulture
+        run: |
+          echo "## Dead Code Report" >> $GITHUB_STEP_SUMMARY
+          uv run vulture src/ --min-confidence 90 | tee vulture-report.txt || true
+          if [ -s vulture-report.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat vulture-report.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "::warning::Potential dead code detected. Review vulture report."
           else
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "uv.lock unchanged in this PR"
+            echo "✅ No dead code detected with 90% confidence." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Validate requirements.txt sync
-        if: steps.uv-changed.outputs.changed == 'true'
+  # Changelog Enforcement
+  changelog:
+    name: Changelog Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Check for CHANGELOG update
+        uses: dangoslen/changelog-enforcer@v3
+        with:
+          changeLogPath: 'CHANGELOG.md'
+          skipLabels: 'skip-changelog,dependencies,documentation'
+          missingUpdateErrorMessage: |
+            Please update CHANGELOG.md with a description of your changes.
+            Add the label 'skip-changelog' if this PR doesn't require a changelog entry.
+
+{% if cookiecutter.use_mkdocs == "yes" %}
+  # Documentation Link Check
+  link-check:
+    name: Documentation Links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check documentation links
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: >-
+            --verbose
+            --no-progress
+            --accept 200,204,206,301,302,403,429
+            --exclude-mail
+            --exclude '^https://github.com/.*/(issues|pulls|compare)/.*$'
+            --exclude '^https://linear.app/.*$'
+            './docs/**/*.md'
+            './README.md'
+            './CONTRIBUTING.md'
+          fail: false
+          jobSummary: true
+        env:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+{% endif %}
+
+  # ==========================================================================
+  # Validation Summary
+  # ==========================================================================
+  validation-summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [core-validation, dead-code, changelog{% if cookiecutter.use_mkdocs == "yes" %}, link-check{% endif %}]
+    if: always()
+    steps:
+      - name: Check validation results
         run: |
-          echo "uv.lock has changed, validating requirements.txt sync..."
+          echo "## PR Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Generate requirements from current uv.lock
-          ./scripts/generate_requirements.sh
+          {% raw %}
+          if [ "${{ needs.core-validation.result }}" == "success" ]; then
+            echo "✅ Core Validation: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Core Validation: ${{ needs.core-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
 
-          # Check if generated files match committed files
-          if ! git diff --exit-code requirements*.txt; then
-            echo "::error::Requirements files are out of sync with uv.lock"
-            echo "::error::This PR modifies uv.lock but the requirements files don't match."
-            echo "::error::Please run './scripts/generate_requirements.sh' and commit the updated requirements files."
+          if [ "${{ needs.dead-code.result }}" == "success" ]; then
+            echo "✅ Dead Code Check: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Dead Code Check: ${{ needs.dead-code.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.changelog.result }}" == "success" ]; then
+            echo "✅ Changelog: Updated" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.changelog.result }}" == "skipped" ]; then
+            echo "⏭️ Changelog: Skipped" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Changelog: ${{ needs.changelog.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          {% endraw %}
+
+          {% if cookiecutter.use_mkdocs == "yes" %}
+          {% raw %}
+          if [ "${{ needs.link-check.result }}" == "success" ]; then
+            echo "✅ Link Check: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Link Check: ${{ needs.link-check.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          {% endraw %}
+          {% endif %}
+
+          {% raw %}
+          # Fail if core validation failed
+          if [ "${{ needs.core-validation.result }}" == "failure" ]; then
             echo ""
-            echo "Files that need to be updated:"
-            git diff --name-only requirements*.txt
-            echo ""
-            echo "To fix this issue:"
-            echo "1. Run: ./scripts/generate_requirements.sh"
-            echo "2. Review and commit the updated requirements files"
-            echo "3. Push the changes to this PR branch"
+            echo "❌ Core validation checks failed. Please review and fix issues." >> $GITHUB_STEP_SUMMARY
             exit 1
-          else
-            echo "Requirements files are properly synchronized with uv.lock"
           fi
+          {% endraw %}
 
-      - name: Skip validation (no uv.lock changes)
-        if: steps.uv-changed.outputs.changed == 'false'
-        run: |
-          echo "uv.lock unchanged - requirements validation skipped"
-          echo "No dependency changes detected in this PR."
-
-  validate-lockfile:
-    name: Validate Lock File Integrity
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Set up Python
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-        with:
-          python-version: "{{ cookiecutter.python_version }}"
-
-      - name: Install UV
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Verify lock file is up to date
-        run: |
-          echo "Checking if uv.lock is up to date with pyproject.toml..."
-
-          # This will fail if uv.lock is out of sync with pyproject.toml
-          uv sync --frozen --dry-run
-
-          echo "Lock file is valid and up to date"
-
-      - name: Check for security advisories
-        run: |
-          echo "Checking dependencies for known vulnerabilities..."
-
-          # Use pip-audit for vulnerability scanning
-          uv tool run pip-audit --requirement <(uv export --format requirements-txt --no-hashes) || {
-            echo "::warning::Security vulnerabilities found in dependencies"
-            echo "Review the output above and update dependencies if needed"
-          }
+          echo ""
+          echo "✅ All validation checks passed!" >> $GITHUB_STEP_SUMMARY
 {%- else %}
 # PR Validation workflow - NOT CONFIGURED
 # To enable this workflow, set include_github_actions to "yes" in cookiecutter.json

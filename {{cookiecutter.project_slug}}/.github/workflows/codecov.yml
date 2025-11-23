@@ -1,0 +1,69 @@
+# Codecov Coverage Upload for {{ cookiecutter.project_name }}
+# Uploads test coverage reports to Codecov after CI workflow completion.
+#
+# This is a thin caller to the org-level reusable workflow.
+# Security: Downloads artifacts only, no source checkout.
+#
+# Documentation: https://docs.codecov.com/
+{%- if cookiecutter.include_github_actions == "yes" and cookiecutter.include_codecov == "yes" %}
+name: Codecov Upload
+
+on:
+  # Trigger after CI workflow completes
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main, master, develop]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  codecov:
+    name: Upload Coverage
+    # Only run on successful CI completion
+    if: {% raw %}${{ github.event.workflow_run.conclusion == 'success' }}{% endraw %}
+    uses: {{ cookiecutter.github_org_or_user }}/.github/.github/workflows/python-codecov.yml@main
+    with:
+      artifact-name: 'coverage-reports'
+      coverage-files: '*.xml'
+      name: '{{ cookiecutter.project_name }} Coverage'
+      workflow-run-id: {% raw %}${{ github.event.workflow_run.id }}{% endraw %}
+      commit-sha: {% raw %}${{ github.event.workflow_run.head_sha }}{% endraw %}
+    secrets:
+      CODECOV_TOKEN: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
+
+  report-failure:
+    name: Report CI Failure
+    runs-on: ubuntu-latest
+    if: {% raw %}${{ github.event.workflow_run.conclusion == 'failure' }}{% endraw %}
+    steps:
+      - name: Report status
+        run: |
+          echo "## Coverage Upload Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ CI workflow failed - coverage upload skipped" >> $GITHUB_STEP_SUMMARY
+{%- elif cookiecutter.include_github_actions == "yes" %}
+# Codecov integration is disabled for this project
+# To enable, set include_codecov to "yes" in cookiecutter.json
+name: Codecov Upload (Disabled)
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  info:
+    name: Codecov Disabled
+    runs-on: ubuntu-latest
+    steps:
+      - name: Info
+        run: |
+          echo "Codecov integration is disabled for this project."
+          echo "To enable, set include_codecov to 'yes' in cookiecutter.json"
+{%- else %}
+# GitHub Actions disabled for this project
+# Enable include_github_actions and include_codecov to use Codecov
+{%- endif %}

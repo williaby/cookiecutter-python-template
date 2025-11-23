@@ -91,6 +91,9 @@ dev = [
     "ruff>=0.9.0",
     "basedpyright>=1.18.0",  # Stricter type checker (replaces mypy)
     "bandit>=1.7.0",
+    "vulture>=2.11",  # Dead code detection
+    "pip-audit>=2.7.0",  # Python vulnerability scanning
+    "darglint>=1.8.1",  # Docstring argument validation
 
     # Pre-commit
     {% if cookiecutter.use_pre_commit == "yes" -%}
@@ -293,8 +296,7 @@ ignore = [
     "D107",   # missing docstring in __init__ (class docstring sufficient)
 
     # Type annotations (pragmatic exceptions)
-    "ANN101", # missing type annotation for self (deprecated in Python 3.11+)
-    "ANN102", # missing type annotation for cls (deprecated in Python 3.11+)
+    # Note: ANN101/ANN102 removed - rules deprecated in Ruff (self/cls annotation not needed)
     "ANN401", # dynamically typed expressions (Any) - sometimes necessary
 
     # Pylint rules (too strict for all cases)
@@ -330,7 +332,6 @@ known-first-party = ["{{ cookiecutter.project_slug }}"]
     "ANN",    # Type annotations not required in tests
     "ARG",    # Unused arguments (fixtures)
     "D",      # Docstrings not required in tests
-    "S",      # Security (test assertions)
     "PLR",    # Pylint refactor suggestions
     "PLC0415", # Imports inside test functions are idiomatic
     "ERA",    # Commented code (test debugging)
@@ -339,11 +340,19 @@ known-first-party = ["{{ cookiecutter.project_slug }}"]
     "EM",     # Error messages (test exceptions)
     "TRY",    # Exception handling (test assertions)
     "INP",    # No __init__.py required for test directories
+    # Security rules OK to skip in tests (specific, not blanket S)
+    "S101",   # assert_used - pytest uses asserts
+    "S105",   # hardcoded_password_string - test credentials are fake
+    "S106",   # hardcoded_password_funcarg - test fixtures with fake passwords
+    "S107",   # hardcoded_password_default - test default values
+    "S108",   # hardcoded_tmp_directory - test temp paths are intentional
+    "S311",   # random - non-crypto random in tests is fine
+    "S113",   # request_without_timeout - test HTTP calls may be mocked
 ]
 
 # Scripts (utility code - not packages)
 "scripts/**/*.py" = [
-    "ANN", "D", "T20", "TRY", "S", "PTH", "PLR",
+    "ANN", "D", "T20", "TRY", "PTH", "PLR",
     "INP",    # Scripts are not packages
     "EM",     # Utility scripts don't need perfect error messages
     "T10",    # Debugger allowed during script development
@@ -353,6 +362,13 @@ known-first-party = ["{{ cookiecutter.project_slug }}"]
     "SIM",    # Simplification suggestions (scripts prioritize clarity)
     "F821",   # Allow dynamic imports
     "G201",   # Logging patterns (scripts may use .error with exc_info)
+    # Security rules OK to skip in scripts (specific, not blanket S)
+    "S101",   # assert_used - scripts may use asserts for validation
+    "S104",   # hardcoded_bind_all_interfaces - dev scripts may bind 0.0.0.0
+    "S108",   # hardcoded_tmp_directory - scripts use /tmp intentionally
+    "S311",   # random - non-crypto random in scripts is fine
+    "S603",   # subprocess_without_shell_equals_true - scripts validate inputs
+    "S607",   # start_process_with_partial_path - scripts use PATH
 ]
 
 # Benchmarks (performance testing)
@@ -542,6 +558,27 @@ ignore-init-method = true
 ignore-init-module = true
 color = true
 
+# Darglint Configuration (Docstring Argument Validation)
+# Validates that docstring arguments match function signatures
+# Reference: https://github.com/terrencepreilly/darglint
+[tool.darglint]
+# Google-style docstrings (matches ruff pydocstyle convention)
+docstring_style = "google"
+# Strictness levels: short, long, full
+# - short: Only documented items must exist in signature
+# - long: All parameters must be documented (recommended)
+# - full: Types in docstring must match annotations
+strictness = "long"
+# Ignore missing parameter documentation in these cases
+ignore = [
+    "DAR101",  # Missing parameter(s) in Docstring (initially lenient)
+    "DAR201",  # Missing "Returns" in Docstring (handled by pydocstyle)
+    "DAR301",  # Missing "Yields" in Docstring
+    "DAR401",  # Missing exception(s) in Raises section
+]
+# Ignore in these directories
+ignore_regex = "^(tests|scripts|benchmarks|tools)/.*$"
+
 # Mutation Testing Configuration (mutmut)
 [tool.mutmut]
 paths_to_mutate = "src/"
@@ -551,36 +588,63 @@ tests_dir = "tests/"
 dict_synonyms = "Struct, NamedStruct"
 
 # Bandit Security Configuration
+# Run: uv run bandit -c pyproject.toml -r src/
+# Reference: https://bandit.readthedocs.io/
 [tool.bandit]
-exclude_dirs = ["tests", "docs", ".venv", "venv"]
-skips = []
-tests = [
-    "B201",  # flask_debug_true
-    "B301",  # pickle
-    "B302",  # marshal
-    "B303",  # md5
-    "B304",  # ciphers
-    "B305",  # cipher_modes
-    "B306",  # mktemp_q
-    "B307",  # eval
-    "B308",  # mark_safe
-    "B309",  # httpsconnection
-    "B310",  # urlopen
-    "B311",  # random
-    "B312",  # telnetlib
-    "B313",  # xml_bad_cElementTree
-    "B314",  # xml_bad_ElementTree
-    "B315",  # xml_bad_expat_reader
-    "B316",  # xml_bad_expat_builder
-    "B317",  # xml_bad_sax
-    "B318",  # xml_bad_pulldom
-    "B319",  # xml_bad_etree
-    "B320",  # xml_bad_etree_iterparse
-    "B321",  # pickle_load
-    "B322",  # unverified_context
-    "B323",  # unverified_ftp
-    "B324",  # hashlib
-    # B325 removed - invalid test ID in current Bandit version
+# Directories to exclude from scanning
+exclude_dirs = [
+    "tests",
+    "scripts",
+    "benchmarks",
+    "tools",
+    "fuzz",
+    "docs",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+]
+
+# Skip these checks (false positives or acceptable in context)
+skips = [
+    "B101",  # assert_used - pytest uses assert statements
+    "B104",  # hardcoded_bind_all_interfaces - often intentional for dev servers
+    "B311",  # random - non-crypto random is fine for non-security purposes
+    "B404",  # import_subprocess - subprocess is needed, usage is checked
+    "B603",  # subprocess_without_shell_equals_true - we validate inputs
+]
+
+# Targets to scan (can be overridden on command line)
+targets = ["src"]
+
+# Severity and confidence levels
+# Run with -ll (medium+) or -lll (high only) for less noise
+# These are applied when using -c pyproject.toml
+[tool.bandit.assert_used]
+skips = ["**/test_*.py", "**/*_test.py"]
+
+# Vulture Configuration (Dead Code Detection)
+# Detects unused code to maintain clean codebase
+# Run: uv run vulture src/
+[tool.vulture]
+min_confidence = 80
+paths = ["src/"]
+exclude = [
+    "tests/",
+    "docs/",
+    ".venv/",
+    "venv/",
+    "build/",
+    "dist/",
+]
+# Whitelist common false positives
+ignore_names = [
+    "visit_*",  # AST visitor methods
+    "setUp",
+    "tearDown",
+    "setUpClass",
+    "tearDownClass",
+    "__*__",  # Magic methods
 ]
 
 # UV Configuration

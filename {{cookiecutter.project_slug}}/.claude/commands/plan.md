@@ -10,7 +10,7 @@ allowed-tools:
 
 # Generate Project Planning Documents
 
-You are generating the initial project planning documents for {{ '{{cookiecutter.project_name}}' }}.
+You are generating the initial project planning documents for {{cookiecutter.project_name}}.
 
 ## Project Description
 
@@ -42,7 +42,7 @@ After writing each document, request expert review:
 ```
 mcp__zen__consensus with gemini-3-pro-preview:
 
-Review this [Document Type] for {{ '{{cookiecutter.project_name}}' }}.
+Review this [Document Type] for {{cookiecutter.project_name}}.
 
 EVALUATION CRITERIA:
 1. SPECIFICITY - Can a developer implement from these requirements?
@@ -74,10 +74,10 @@ After all documents pass review:
 
 This project was created from the cookiecutter-python-template with:
 
-- **Project Name**: {{ '{{cookiecutter.project_name}}' }}
-- **Package**: {{ '{{cookiecutter.project_slug}}' }}
-- **Python Version**: {{ '{{cookiecutter.python_version}}' }}
-- **Author**: {{ '{{cookiecutter.author_name}}' }}
+- **Project Name**: {{cookiecutter.project_name}}
+- **Package**: {{cookiecutter.project_slug}}
+- **Python Version**: {{cookiecutter.python_version}}
+- **Author**: {{cookiecutter.author_name}}
 {% raw %}
 {%- if cookiecutter.include_cli == "yes" %}
 - **CLI**: Yes (Click framework)

@@ -5,13 +5,22 @@ with structured logging integration.
 """
 
 import sys
+from dataclasses import dataclass
 
 import click
+from structlog.stdlib import BoundLogger
 
 from {{ cookiecutter.project_slug }}.core.config import settings
 from {{ cookiecutter.project_slug }}.utils.logging import get_logger
 
-logger = get_logger(__name__)
+logger: BoundLogger = get_logger(__name__)
+
+
+@dataclass
+class CLIContext:
+    """Typed context object for Click commands."""
+
+    debug: bool = False
 
 
 @click.group()
@@ -24,9 +33,8 @@ logger = get_logger(__name__)
 @click.pass_context
 def cli(ctx: click.Context, debug: bool) -> None:
     """{{ cookiecutter.project_name }} - {{ cookiecutter.project_short_description }}."""
-    # Store debug flag in context for subcommands
-    ctx.ensure_object(dict)
-    ctx.obj["debug"] = debug
+    # Store typed context object for subcommands
+    ctx.obj = CLIContext(debug=debug)
 
     if debug:
         logger.debug("Debug mode enabled")
@@ -44,12 +52,12 @@ def cli(ctx: click.Context, debug: bool) -> None:
 def hello(ctx: click.Context, name: str) -> None:
     """Greet the user with a personalized message."""
     try:
-        debug = ctx.obj.get("debug", False) if ctx.obj else False
+        cli_ctx: CLIContext = ctx.obj if isinstance(ctx.obj, CLIContext) else CLIContext()
 
         logger.info(
             "Processing hello command",
             name=name,
-            debug=debug,
+            debug=cli_ctx.debug,
         )
 
         message = f"Hello, {name}!"
@@ -71,14 +79,14 @@ def config(ctx: click.Context) -> None:
     Shows configuration values from environment variables or defaults.
     """
     try:
-        debug = ctx.obj.get("debug", False) if ctx.obj else False
+        cli_ctx: CLIContext = ctx.obj if isinstance(ctx.obj, CLIContext) else CLIContext()
 
         logger.info("Retrieving configuration")
 
         click.echo("Current Configuration:")
         click.echo("  Project: {{ cookiecutter.project_name }}")
         click.echo("  Version: {{ cookiecutter.version }}")
-        click.echo(f"  Debug: {debug}")
+        click.echo(f"  Debug: {cli_ctx.debug}")
         click.echo(f"  Log Level: {settings.log_level}")
 
         logger.info("Configuration displayed successfully")

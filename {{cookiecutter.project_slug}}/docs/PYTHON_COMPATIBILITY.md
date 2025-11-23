@@ -1,3 +1,15 @@
+---
+title: "Python Version Compatibility Guide"
+schema_type: common
+status: published
+owner: core-maintainer
+purpose: "Guide for maintaining compatibility across Python versions."
+tags:
+  - guide
+  - development
+  - requirements
+---
+
 # Python Version Compatibility Guide
 
 This project supports **Python 3.10, 3.11, 3.12, 3.13, and 3.14** with full testing across all versions.

@@ -1,4 +1,17 @@
-# Development Roadmap: {{ '{{cookiecutter.project_name}}' }}
+---
+title: "{{cookiecutter.project_name}} - Development Roadmap"
+schema_type: planning
+status: draft
+owner: core-maintainer
+purpose: "Document the phased implementation plan and milestones."
+tags:
+  - planning
+  - roadmap
+component: Strategy
+source: "/plan command generation"
+---
+
+# Development Roadmap: {{cookiecutter.project_name}}
 
 > **Status**: Awaiting Generation
 

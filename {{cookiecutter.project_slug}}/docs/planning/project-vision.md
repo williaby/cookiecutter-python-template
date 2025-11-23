@@ -1,4 +1,17 @@
-# Project Vision & Scope: {{ '{{cookiecutter.project_name}}' }}
+---
+title: "{{cookiecutter.project_name}} - Project Vision & Scope"
+schema_type: planning
+status: draft
+owner: core-maintainer
+purpose: "Document the project vision, scope, and success criteria."
+tags:
+  - planning
+  - scope
+component: Strategy
+source: "/plan command generation"
+---
+
+# Project Vision & Scope: {{cookiecutter.project_name}}
 
 > **Status**: Awaiting Generation
 

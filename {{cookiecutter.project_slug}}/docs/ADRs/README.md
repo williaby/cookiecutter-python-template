@@ -1,4 +1,14 @@
-# Architecture Decision Records (ADRs)
+---
+title: "Architecture Decision Records (ADRs)"
+schema_type: common
+status: published
+owner: core-maintainer
+purpose: "Index of architecture decision records for this project."
+tags:
+  - adr
+  - architecture
+  - decisions
+---
 
 This directory contains Architecture Decision Records (ADRs) that document important architectural and design decisions made in {{cookiecutter.project_name}}.
 

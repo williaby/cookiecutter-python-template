@@ -1,3 +1,15 @@
+---
+title: "OpenSSF Compliance Guide"
+schema_type: common
+status: published
+owner: core-maintainer
+purpose: "Guide for achieving OpenSSF best practices compliance."
+tags:
+  - security
+  - compliance
+  - quality
+---
+
 # OpenSSF Compliance Guide
 
 This project follows [OpenSSF (Open Source Security Foundation)](https://openssf.org/) security best practices, achieving high scores on the [Scorecard](https://github.com/ossf/scorecard) and [Best Practices Badge](https://www.bestpractices.dev/).

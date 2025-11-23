@@ -107,7 +107,8 @@
   "include_security_policy": ["yes", "no"],
 
   "_comment_urls": "Project URLs",
-  "repo_url": "https://github.com/{{ cookiecutter.github_org_or_user }}/{{ cookiecutter.project_slug }}",
-  "docs_url": "https://{{ cookiecutter.project_slug }}.readthedocs.io",
+  "github_repo_name": "{{ cookiecutter.project_slug.replace('_', '-') }}",
+  "repo_url": "https://github.com/{{ cookiecutter.github_org_or_user }}/{{ cookiecutter.github_repo_name }}",
+  "docs_url": "https://{{ cookiecutter.github_repo_name }}.readthedocs.io",
   "pypi_package_name": "{{ cookiecutter.project_slug.replace('_', '-') }}"
 }

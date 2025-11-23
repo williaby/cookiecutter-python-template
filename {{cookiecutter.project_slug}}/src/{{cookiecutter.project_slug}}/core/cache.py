@@ -142,7 +142,7 @@ def cached(
                 prefix = key_prefix or func.__name__
                 # Create unique key from function arguments
                 key_data = f"{args}:{sorted(kwargs.items())}"
-                key_hash = hashlib.md5(key_data.encode()).hexdigest()[:8]
+                key_hash = hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()[:8]
                 cache_key = f"{prefix}:{key_hash}"
 
             try:

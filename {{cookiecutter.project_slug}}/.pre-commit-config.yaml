@@ -1,9 +1,10 @@
 # Pre-commit hooks configuration
 # See https://pre-commit.com for more information
 #
-# This configuration uses Qlty CLI for unified code quality checks.
-# Qlty consolidates linting, formatting, type checking, and security scanning
-# into a single fast tool. See .qlty/qlty.toml for detailed configuration.
+# Hook stages:
+# - pre-commit: Fast checks on every commit (formatting, syntax, security)
+# - pre-push: Full quality checks before pushing (Qlty, full scans)
+# - commit-msg: Conventional commit message validation
 #
 # Installation: curl https://qlty.sh | bash
 # Documentation: https://docs.qlty.sh
@@ -11,7 +12,7 @@
 ci:
   autoupdate_schedule: monthly
   autofix_prs: true
-  skip: [validate-front-matter, qlty-check]  # Skip local-only hooks
+  skip: [validate-front-matter, qlty-check, qlty-full, trufflehog, darglint, bandit, bandit-full]  # Skip local-only hooks
 
 repos:
   # ============================================================================
@@ -43,14 +44,87 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
         stages: [pre-commit]
+      - id: debug-statements
+        stages: [pre-commit]
+      - id: check-executables-have-shebangs
+        stages: [pre-commit]
+      - id: check-shebang-scripts-are-executable
+        stages: [pre-commit]
 
   # ============================================================================
-  # Qlty Unified Quality Checks
+  # Secret Detection - TruffleHog
   # ============================================================================
+  # Advanced secret detection beyond detect-private-key
+  # Detects API keys, tokens, credentials, and other secrets
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.63.11
+    hooks:
+      - id: trufflehog
+        entry: trufflehog filesystem --fail --no-update .
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Security Scanning - Bandit
+  # ============================================================================
+  # Dedicated Bandit hook for Python security analysis
+  # Runs on changed files during pre-commit, full scan on pre-push
+  # Configuration in pyproject.toml [tool.bandit]
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        name: Bandit Security Scan (changed files)
+        args: ['-c', 'pyproject.toml', '-ll']  # Medium+ severity only
+        stages: [pre-commit]
+        exclude: ^(tests|scripts|benchmarks|tools|fuzz)/
+
+  # Full Bandit scan on pre-push (catches all issues before PR)
+  - repo: local
+    hooks:
+      - id: bandit-full
+        name: Bandit Security Scan (full src/)
+        entry: uv run bandit -c pyproject.toml -r src/ -ll -q
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+
+  # ============================================================================
+  # Conventional Commits Enforcement
+  # ============================================================================
+  # Enforces conventional commit message format for semantic versioning
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  # ============================================================================
+  # pyproject.toml Validation
+  # ============================================================================
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.20.2
+    hooks:
+      - id: validate-pyproject
+        stages: [pre-commit]
+
+  # ============================================================================
+  # GitHub Workflow Validation
+  # ============================================================================
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.29.4
+    hooks:
+      - id: check-github-workflows
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Qlty Unified Quality Checks (Pre-Push)
+  # ============================================================================
+  # Moved to pre-push to avoid clogging PR reviews with issues
   # Qlty runs all quality tools in a single pass:
   # - Ruff (linting + formatting)
   # - BasedPyright (type checking)
-  # - Bandit (security scanning)
   # - Gitleaks (secrets detection)
   # - Markdownlint (markdown linting)
   # - Yamllint (YAML linting)
@@ -62,13 +136,22 @@ repos:
   - repo: local
     hooks:
       - id: qlty-check
-        name: Qlty Code Quality Check
+        name: Qlty Code Quality Check (changed files)
         entry: >-
-          bash -c "command -v qlty >/dev/null 2>&1 && qlty check --filter=diff || echo Skipping_qlty_not_installed"
+          bash -c "command -v qlty >/dev/null 2>&1 && qlty check --filter=diff || echo 'Qlty not installed - skipping (install: curl https://qlty.sh | bash)'"
         language: system
         types: [file]
         pass_filenames: false
-        stages: [pre-commit]
+        stages: [pre-push]
+        verbose: true
+
+      - id: qlty-full
+        name: Qlty Full Quality Check (all files)
+        entry: >-
+          bash -c "command -v qlty >/dev/null 2>&1 && qlty check src/ || echo 'Qlty not installed - skipping'"
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
         verbose: true
 
 {% if cookiecutter.use_mkdocs == "yes" %}
@@ -98,6 +181,22 @@ repos:
         args: ['-v', '-c', 'pyproject.toml', 'src/']
         pass_filenames: false
         stages: [pre-commit]
+
+  # ============================================================================
+  # Docstring Argument Validation
+  # ============================================================================
+  # Darglint validates that docstring arguments match function signatures
+  # Configuration in pyproject.toml [tool.darglint]
+  - repo: local
+    hooks:
+      - id: darglint
+        name: Darglint docstring validation
+        entry: uv run darglint
+        language: system
+        types: [python]
+        stages: [pre-commit]
+        exclude: ^(tests|scripts|benchmarks|tools)/
+
 # Exclude patterns
 exclude: |
   (?x)^(

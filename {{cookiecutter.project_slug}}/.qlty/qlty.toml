@@ -37,11 +37,16 @@ test_patterns = [
 # Ruff is an extremely fast Python linter and code formatter written in Rust.
 # It replaces Flake8, Black, isort, pyupgrade, and more.
 # Configuration: pyproject.toml [tool.ruff] section
-[[plugin]]
-name = "ruff"
-version = "latest"
+#
+# IMPORTANT: After cloning, run `qlty plugins install` to install the plugin.
+# If you see "Plugin definition not found for ruff", run:
+#   qlty plugins install
+#
+[plugins.ruff]
+enabled = true
 package_file = "pyproject.toml"
 config_files = ["pyproject.toml", "ruff.toml", ".ruff.toml"]
+file_types = ["python"]
 
 # Run on every trigger (fast enough for all workflows)
 triggers = ["pre-commit", "pre-push", "ide", "build"]

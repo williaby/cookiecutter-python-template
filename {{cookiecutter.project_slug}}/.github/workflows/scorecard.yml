@@ -1,9 +1,10 @@
 # OpenSSF Scorecard for {{ cookiecutter.project_name }}
-# Security posture assessment and supply chain security validation
+# Security posture assessment and supply chain security validation.
+#
+# This is a thin caller to the org-level reusable workflow.
 #
 # Dashboard: https://securityscorecards.dev/viewer/?uri=github.com/{{ cookiecutter.github_org_or_user }}/{{ cookiecutter.project_slug }}
 # Documentation: https://github.com/ossf/scorecard
-
 {%- if cookiecutter.include_github_actions == "yes" %}
 name: OpenSSF Scorecard
 
@@ -18,69 +19,20 @@ on:
       - master
   workflow_dispatch:
 
-# Minimal permissions for scorecard execution
-permissions: read-all
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+  actions: read
 
 jobs:
-  analysis:
+  scorecard:
     name: Scorecard Analysis
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    permissions:
-      # Required for uploading results to GitHub Code Scanning
-      security-events: write
-      # Required for OIDC token generation (scorecard uses this for trusted publishing)
-      id-token: write
-      # Required for reading repository contents
-      contents: read
-      # Required for reading branch protection rules
-      actions: read
-
-    steps:
-      - name: Harden the runner (Audit outbound calls)
-        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
-        with:
-          egress-policy: audit
-          # Allow scorecard to make necessary API calls
-          allowed-endpoints: >
-            api.github.com:443
-            github.com:443
-            api.scorecard.dev:443
-            *.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            index.docker.io:443
-            registry-1.docker.io:443
-            auth.docker.io:443
-
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-          fetch-depth: 0  # Full history for accurate analysis
-
-      - name: Run OpenSSF Scorecard
-        uses: ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2.4.0
-        with:
-          results_file: scorecard-results.sarif
-          results_format: sarif
-          # Publish results for public repositories
-          publish_results: true
-          # Optional: Use GitHub PAT for more accurate branch protection checks
-          # repo_token: {{ "${{ secrets.SCORECARD_TOKEN }}" }}
-
-      - name: Upload Scorecard results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@48ab28a6f5dbc2a99bf1e0131198dd8f1df78169 # v3.27.5
-        with:
-          sarif_file: scorecard-results.sarif
-
-      - name: Upload Scorecard results as artifact
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-        with:
-          name: scorecard-results
-          path: scorecard-results.sarif
-          retention-days: 5
-          if-no-files-found: error
+    uses: {{ cookiecutter.github_org_or_user }}/.github/.github/workflows/python-scorecard.yml@main
+    with:
+      publish-results: true
+      upload-sarif: true
+      artifact-retention-days: 5
 {%- else %}
 # GitHub Actions disabled for this project
 # Enable include_github_actions to use OpenSSF Scorecard

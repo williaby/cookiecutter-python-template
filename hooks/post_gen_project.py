@@ -6,8 +6,9 @@ Runs after all files have been created.
 """
 
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
+from datetime import datetime
 from pathlib import Path
 
 
@@ -54,9 +55,15 @@ def run_command(cmd: list[str], check: bool = True) -> bool:
         True if successful, False otherwise
     """
     try:
-        subprocess.run(cmd, check=check, capture_output=True, text=True)
+        subprocess.run(cmd, check=check, capture_output=True, text=True)  # nosec B603
         return True
     except subprocess.CalledProcessError:
+        return False
+    except FileNotFoundError:
+        # Command not found (e.g., pre-commit not installed)
+        return False
+    except OSError:
+        # Other OS-level errors (permission denied, etc.)
         return False
 
 
@@ -95,10 +102,10 @@ def cleanup_conditional_files() -> None:
     if "{{ cookiecutter.include_contributing_guide }}" == "no":
         remove_file(Path("CONTRIBUTING.md"))
 
-    # Remove codecov config if not needed
-    # Note: Codecov workflow is now integrated into CI workflow (org-level reusable)
+    # Remove codecov config and workflow if not needed
     if "{{ cookiecutter.include_codecov }}" == "no":
         remove_file(Path("codecov.yml"))
+        remove_file(Path(".github/workflows/codecov.yml"))
 
     # Remove SonarCloud if not needed
     if "{{ cookiecutter.include_sonarcloud }}" == "no":
@@ -125,6 +132,7 @@ def cleanup_conditional_files() -> None:
         remove_file(Path("docker-compose.yml"))
         remove_file(Path("docker-compose.prod.yml"))
         remove_file(Path(".dockerignore"))
+        remove_file(Path(".github/workflows/container-security.yml"))
 
     # Remove health check endpoints if not needed or if no API framework
     if (
@@ -180,11 +188,11 @@ def cleanup_conditional_files() -> None:
 
 
 def initialize_git() -> None:
-    """Initialize git repository."""
+    """Initialize git repository with main as default branch."""
     print("\n🔧 Initializing Git repository...")
 
-    if run_command(["git", "init"], check=False):
-        print("  ✓ Git repository initialized")
+    if run_command(["git", "init", "-b", "main"], check=False):
+        print("  ✓ Git repository initialized (default branch: main)")
 
         # Create initial commit
         if run_command(["git", "add", "."], check=False) and run_command(
@@ -600,6 +608,136 @@ def print_success_message() -> None:
     print("=" * 60 + "\n")
 
 
+def inject_creation_date() -> None:
+    """Inject the actual project creation date into files.
+
+    Replaces the placeholder __PROJECT_CREATION_DATE__ with the current date.
+    This ensures the date reflects when the project was generated, not when
+    the cookiecutter template was created.
+    """
+    print("\n📅 Injecting project creation date...")
+
+    creation_date = datetime.now().strftime("%Y-%m-%d")
+
+    # Files that may contain the date placeholder
+    files_to_update = [
+        Path("CLAUDE.md"),
+        Path("README.md"),
+        Path("pyproject.toml"),
+    ]
+
+    placeholder = "__PROJECT_CREATION_DATE__"
+    updated_count = 0
+
+    for filepath in files_to_update:
+        if not filepath.exists():
+            continue
+
+        try:
+            content = filepath.read_text()
+            if placeholder in content:
+                content = content.replace(placeholder, creation_date)
+                filepath.write_text(content)
+                updated_count += 1
+                print(f"  ✓ Updated: {filepath}")
+        except (OSError, UnicodeDecodeError) as e:
+            print(f"  ⚠ Could not update {filepath}: {e}")
+
+    if updated_count > 0:
+        print(f"  ✓ Injected creation date ({creation_date}) into {updated_count} file(s)")
+    else:
+        print("  ✓ No date placeholders found")
+
+
+def ensure_trailing_newlines() -> None:
+    """Ensure all text files end with a trailing newline.
+
+    This prevents the pre-commit hook 'end-of-file-fixer' from modifying
+    files on first run, which would indicate a template quality issue.
+    """
+    print("\n🔧 Ensuring trailing newlines...")
+
+    # File extensions to process (text files only)
+    text_extensions = {
+        ".py",
+        ".md",
+        ".txt",
+        ".yml",
+        ".yaml",
+        ".json",
+        ".toml",
+        ".cfg",
+        ".ini",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".gitignore",
+        ".gitattributes",
+        ".editorconfig",
+        ".env",
+        ".example",
+        ".rst",
+        ".css",
+        ".html",
+        ".js",
+        ".ts",
+        ".tsx",
+        ".jsx",
+    }
+
+    # Also include common dotfiles
+    dotfiles = {
+        ".gitignore",
+        ".gitattributes",
+        ".editorconfig",
+        ".pre-commit-config.yaml",
+        ".env.example",
+    }
+
+    fixed_count = 0
+    project_root = Path(".")
+
+    for filepath in project_root.rglob("*"):
+        if not filepath.is_file():
+            continue
+
+        # Skip git directory
+        if ".git" in filepath.parts:
+            continue
+
+        # Check if file should be processed
+        should_process = (
+            filepath.suffix.lower() in text_extensions
+            or filepath.name in dotfiles
+            or filepath.name.startswith(".")
+            and filepath.suffix in text_extensions
+        )
+
+        if not should_process:
+            continue
+
+        try:
+            content = filepath.read_bytes()
+
+            # Skip empty files and binary files
+            if not content or b"\x00" in content[:1024]:
+                continue
+
+            # Check if file ends with newline
+            if not content.endswith(b"\n"):
+                filepath.write_bytes(content + b"\n")
+                fixed_count += 1
+
+        except (OSError, UnicodeDecodeError):
+            # Skip files that can't be read
+            continue
+
+    if fixed_count > 0:
+        print(f"  ✓ Added trailing newlines to {fixed_count} file(s)")
+    else:
+        print("  ✓ All files already have trailing newlines")
+
+
 def run_code_fixes() -> None:
     """Run automatic code fixes on generated project.
 
@@ -629,8 +767,10 @@ def main() -> None:
     try:
         cleanup_conditional_files()
         render_workflow_templates()  # Fix unrendered Jinja2 variables in workflows
+        inject_creation_date()  # Inject actual creation date into files
         create_initial_directories()
         run_code_fixes()  # Auto-fix code quality issues before git init
+        ensure_trailing_newlines()  # Ensure all files have trailing newlines
         initialize_git()
         setup_claude_subtree()  # Add Claude standards via git subtree
         setup_pre_commit()

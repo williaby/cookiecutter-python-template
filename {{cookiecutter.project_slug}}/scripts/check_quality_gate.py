@@ -27,8 +27,12 @@ import json
 import os
 import sys
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
+
+
+# Allowed URL schemes for security (B310)
+ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 
 class SonarQubeClient:
@@ -51,10 +55,16 @@ class SonarQubeClient:
             query_string = "&".join(f"{k}={v}" for k, v in params.items())
             url = f"{url}?{query_string}"
 
+        # Validate URL scheme to prevent file:// or custom scheme attacks (B310)
+        parsed = urlparse(url)
+        if parsed.scheme not in ALLOWED_SCHEMES:
+            print(f"Error: Invalid URL scheme '{parsed.scheme}'. Only http/https allowed.", file=sys.stderr)
+            sys.exit(2)
+
         request = Request(url, headers=self.headers)
 
         try:
-            with urlopen(request, timeout=30) as response:
+            with urlopen(request, timeout=30) as response:  # nosec B310 - URL scheme validated above
                 return json.loads(response.read().decode())
         except HTTPError as e:
             print(f"HTTP Error {e.code}: {e.reason}", file=sys.stderr)

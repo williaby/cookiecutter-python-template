@@ -10,11 +10,16 @@ configuration.
 
 import logging
 import sys
-from typing import Any
+from typing import TYPE_CHECKING
 
 import structlog
 from rich.console import Console
 from rich.logging import RichHandler
+from structlog.stdlib import BoundLogger
+from structlog.types import Processor
+
+if TYPE_CHECKING:
+    from structlog.types import EventDict, WrappedLogger
 
 # Global console for rich output (stderr for proper output separation)
 console = Console(stderr=True)
@@ -66,17 +71,22 @@ def setup_logging(
         ],
     )
 
+    # Define a no-op processor for when timestamp is disabled
+    def noop_processor(
+        logger: "WrappedLogger",
+        method_name: str,
+        event_dict: "EventDict",
+    ) -> "EventDict":
+        """No-op processor that passes through the event dict unchanged."""
+        return event_dict
+
     # Configure structlog processors
-    processors: list[Any] = [
+    processors: list[Processor] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
-        (
-            structlog.processors.TimeStamper(fmt="iso")
-            if include_timestamp
-            else lambda *_args, **_kwargs: {}
-        ),
+        structlog.processors.TimeStamper(fmt="iso") if include_timestamp else noop_processor,
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
@@ -97,7 +107,7 @@ def setup_logging(
     )
 
 
-def get_logger(name: str) -> Any:
+def get_logger(name: str) -> BoundLogger:
     """Get a structured logger instance.
 
     Creates or retrieves a structlog logger with the given name. This should
@@ -120,15 +130,18 @@ def get_logger(name: str) -> Any:
         >>> logger.warning("Low confidence", confidence=0.45, threshold=0.5)
         >>> logger.error("Processing failed", error="file_not_found")
     """
-    return structlog.get_logger(name)
+    # Cast to BoundLogger for type checking - structlog.get_logger returns
+    # a BoundLogger when configured with stdlib LoggerFactory
+    result: BoundLogger = structlog.get_logger(name)  # pyright: ignore[reportAssignmentType]
+    return result
 
 
 def log_performance(
-    logger: Any,
+    logger: BoundLogger,
     operation: str,
     duration_ms: float,
     success: bool = True,
-    **context: Any,
+    **context: object,
 ) -> None:
     """Log performance metrics for an operation.
 
@@ -144,7 +157,7 @@ def log_performance(
 
     Example:
         >>> logger = get_logger(__name__)
-        >>> logger_performance(
+        >>> log_performance(
         ...     logger,
         ...     operation="image_processing",
         ...     duration_ms=42.5,

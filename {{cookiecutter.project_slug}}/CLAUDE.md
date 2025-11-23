@@ -1,6 +1,6 @@
 # Claude Code Project Guidelines
 
-> **Standard Guidelines**: See [./standard/claude.md](./standard/claude.md) for:
+> **Standard Guidelines**: See [.claude/standard/claude.md](.claude/standard/claude.md) for:
 > - Universal development standards and best practices
 > - Response-Aware Development (RAD) system and assumption tagging
 > - Agent assignment patterns and workflow
@@ -19,20 +19,83 @@
 **Description**: {{cookiecutter.project_short_description}}
 **Author**: {{cookiecutter.author_name}} <{{cookiecutter.author_email}}>
 **Repository**: {{cookiecutter.repo_url}}
+**Created**: __PROJECT_CREATION_DATE__
+
+## Branch Workflow Requirement (CRITICAL)
+
+**NEVER work directly on the `main` branch.** Always create a feature branch before making any code changes.
+
+### Before ANY Code Changes
+
+```bash
+# 1. Check current branch
+git branch --show-current
+
+# 2. If on main/master, create a feature branch FIRST
+git checkout -b feat/{descriptive-slug}
+
+# 3. Or for bug fixes
+git checkout -b fix/{issue-or-description}
+```
+
+### Branch Naming Convention
+
+| Task Type | Branch Prefix | Commit Type |
+|-----------|---------------|-------------|
+| New feature | `feat/` | `feat:` |
+| Bug fix | `fix/` | `fix:` |
+| Documentation | `docs/` | `docs:` |
+| Refactoring | `refactor/` | `refactor:` |
+| Performance | `perf/` | `perf:` |
+| Testing | `test/` | `test:` |
+
+**Note**: The primary branch is `main` (not `master`).
+
+## Security-First Development (CRITICAL)
+
+Claude MUST adopt a security-first approach in all development:
+
+### 1. Proactive Security Suggestions
+
+When working on this project, always suggest appropriate security measures:
+- **Dependencies**: Suggest vulnerability scanning (`safety check`, `pip-audit`)
+- **APIs**: Suggest authentication, rate limiting, input validation
+- **Data**: Suggest encryption at rest and in transit, access controls
+{% if cookiecutter.include_docker == "yes" -%}
+- **Containers**: Suggest image vulnerability scanning (Trivy)
+{% endif -%}
+
+### 2. Never Bypass Security Issues
+
+- **ALL security findings** from scanners (Semgrep, SonarQube, Bandit, Checkov) should be addressed, not dismissed
+- If a finding is a false positive, document WHY with inline comments
+- Use baseline files only for truly unavoidable exceptions with justification
+
+### 3. Code Quality Standards
+
+- Treat linting warnings as errors to fix, not ignore
+- Address ALL type checker warnings, not just errors
+- Don't accumulate technical debt by deferring quality issues
+
+### 4. Default to Strictest Settings
+
+- Security scanners: fail on HIGH/CRITICAL by default
+- Type checking: strict mode (already configured)
+- Linting: no ignored rules without documented reason
 
 ## Project Planning Documents
 
-> **First-Time Setup**: If planning documents show "Awaiting Generation", see the [Project Setup Guide](../docs/PROJECT_SETUP.md#project-planning-with-claude-code).
+> **First-Time Setup**: If planning documents show "Awaiting Generation", see the [Project Setup Guide](docs/PROJECT_SETUP.md#project-planning-with-claude-code).
 
 **Planning Documents** (in `docs/planning/`):
-- [project-vision.md](../docs/planning/project-vision.md) - Problem, solution, scope, success metrics
-- [tech-spec.md](../docs/planning/tech-spec.md) - Architecture, data model, APIs, security
-- [roadmap.md](../docs/planning/roadmap.md) - Phased implementation plan
-- [adr/](../docs/planning/adr/) - Architecture decisions with rationale
-- [PROJECT-PLAN.md](../docs/planning/PROJECT-PLAN.md) - Synthesized plan with git branches (after synthesis)
+- [project-vision.md](docs/planning/project-vision.md) - Problem, solution, scope, success metrics
+- [tech-spec.md](docs/planning/tech-spec.md) - Architecture, data model, APIs, security
+- [roadmap.md](docs/planning/roadmap.md) - Phased implementation plan
+- [adr/](docs/planning/adr/) - Architecture decisions with rationale
+- [PROJECT-PLAN.md](docs/planning/PROJECT-PLAN.md) - Synthesized plan with git branches (after synthesis)
 
 **References**:
-- **Complete Workflow**: [Project Setup Guide](../docs/PROJECT_SETUP.md#project-planning-with-claude-code)
+- **Complete Workflow**: [Project Setup Guide](docs/PROJECT_SETUP.md#project-planning-with-claude-code)
 - **Skill Reference**: `.claude/skills/project-planning/`
 
 ### Quick Start
@@ -83,7 +146,7 @@ Review PROJECT-PLAN.md Phase 1 deliverables and update status.
 
 ## Project-Specific Requirements
 
-> **Standard Requirements**: See [./standard/claude.md](./standard/claude.md) for universal standards
+> **Standard Requirements**: See [.claude/standard/claude.md](.claude/standard/claude.md) for universal standards
 
 **Coverage & Quality**:
 - Test coverage: Minimum {{cookiecutter.code_coverage_target}}%
@@ -171,7 +234,7 @@ docs/                       # MkDocs documentation
 
 ## Code Conventions
 
-> **Standard Conventions**: See [./standard/claude.md](./standard/claude.md) for universal naming and style guidelines
+> **Standard Conventions**: See [.claude/standard/claude.md](.claude/standard/claude.md) for universal naming and style guidelines
 
 **Project-Specific Patterns**:
 - Configuration: Use Pydantic Settings with `.env` files
@@ -352,10 +415,10 @@ uv run basedpyright src/  # Show type errors
 
 ## Additional Resources
 
-- **Project README**: [../README.md](../README.md)
-- **Contributing Guide**: [../CONTRIBUTING.md](../CONTRIBUTING.md)
-- **Security Policy**: [../SECURITY.md](../SECURITY.md)
-- **Standard Claude Guidelines**: [./standard/claude.md](./standard/claude.md)
+- **Project README**: [README.md](README.md)
+- **Contributing Guide**: [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Security Policy**: [SECURITY.md](SECURITY.md)
+- **Standard Claude Guidelines**: [.claude/standard/claude.md](.claude/standard/claude.md)
 - **UV Documentation**: https://docs.astral.sh/uv/
 - **Ruff Documentation**: https://docs.astral.sh/ruff/
 

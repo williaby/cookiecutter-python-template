@@ -1,3 +1,15 @@
+---
+title: "Project Setup Guide"
+schema_type: common
+status: published
+owner: core-maintainer
+purpose: "Step-by-step guide for setting up the development environment."
+tags:
+  - guide
+  - installation
+  - development
+---
+
 # Project Setup Guide
 
 This guide covers everything you need to know after generating your project from the cookiecutter template. It includes manual setup steps, keeping your project updated, and managing your repository structure.
@@ -31,8 +43,8 @@ Your project was generated with the following configuration:
 
 ```bash
 # Create a new repository on GitHub, then:
-git remote add origin https://github.com/{{ cookiecutter.github_org_or_user }}/{{ cookiecutter.project_slug }}.git
-git push -u origin master
+git remote add origin https://github.com/{{ cookiecutter.github_org_or_user }}/{{ cookiecutter.github_repo_name }}.git
+git push -u origin main
 ```
 
 ### 3. Install Dependencies
@@ -389,8 +401,13 @@ Your project includes several GitHub Actions workflows:
 |----------|------|---------|
 | CI Pipeline | `ci.yml` | Tests, linting, type checking |
 | Security Analysis | `security-analysis.yml` | Dependency scanning, CodeQL |
+| PR Validation | `pr-validation.yml` | Lock file and requirements sync validation |
 | OpenSSF Scorecard | `scorecard.yml` | Supply chain security assessment |
 | SBOM & Security Scan | `sbom.yml` | Software Bill of Materials generation |
+{%- if cookiecutter.include_semantic_release == "yes" %}
+| Release | `release.yml` | Automated semantic versioning and releases |
+| Publish to PyPI | `publish-pypi.yml` | Package publishing to PyPI |
+{%- endif %}
 {%- if cookiecutter.use_mkdocs == "yes" %}
 | Documentation | `docs.yml` | Build and deploy MkDocs |
 {%- endif %}
@@ -410,6 +427,9 @@ Set these in Repository Settings > Secrets and variables > Actions:
 
 | Secret | Required For | How to Get |
 |--------|--------------|------------|
+{%- if cookiecutter.include_semantic_release == "yes" %}
+| `PYPI_API_TOKEN` | PyPI publishing | pypi.org > Account > API tokens (or use Trusted Publishing) |
+{%- endif %}
 {%- if cookiecutter.include_codecov == "yes" %}
 | `CODECOV_TOKEN` | Codecov uploads | codecov.io > Settings > Upload Token |
 {%- endif %}
@@ -417,6 +437,22 @@ Set these in Repository Settings > Secrets and variables > Actions:
 | `SONAR_TOKEN` | SonarCloud analysis | sonarcloud.io > Account > Security |
 {%- endif %}
 | `SCORECARD_TOKEN` | Scorecard (optional) | GitHub PAT with repo scope |
+
+{%- if cookiecutter.include_semantic_release == "yes" %}
+
+### PyPI Trusted Publishing (Recommended)
+
+Instead of using API tokens, configure trusted publishing for enhanced security:
+
+1. Go to pypi.org and create or manage your project
+2. Navigate to "Publishing" settings
+3. Add a new trusted publisher with:
+   - **Owner**: `{{cookiecutter.github_org_or_user}}`
+   - **Repository**: `{{cookiecutter.github_repo_name}}`
+   - **Workflow**: `publish-pypi.yml`
+   - **Environment**: `pypi`
+4. No `PYPI_API_TOKEN` secret is needed with trusted publishing
+{%- endif %}
 
 {%- endif %}
 
@@ -459,10 +495,31 @@ After registration, add this badge to your README's "Quality & Security" section
 
 ### Branch Protection Rules
 
-Enable these on your default branch:
+You can configure branch protection either via script (recommended) or manually through the GitHub UI.
+
+#### Option 1: Automated Setup (Recommended)
+
+Use the included script to configure comprehensive branch protection:
+
+```bash
+# Set up branch protection with default settings
+uv run python scripts/setup_github_protection.py
+
+# Or specify custom settings
+uv run python scripts/setup_github_protection.py --enforce-admins --require-code-owner-reviews
+```
+
+The script configures:
+- Required pull request reviews before merging
+- Required status checks to pass
+- Enforce rules for administrators
+- Require signed commits
+- Dismiss stale reviews on new commits
+
+#### Option 2: Manual UI Setup
 
 1. Go to Repository Settings > Branches > Add rule
-2. Apply to: `master` (or `main`)
+2. Apply to: `main`
 3. Enable:
    - [x] Require a pull request before merging
    - [x] Require status checks to pass
@@ -472,8 +529,8 @@ Enable these on your default branch:
 ### Required Status Checks
 
 Add these as required checks:
-- `test` (from CI workflow)
-- `lint` (from CI workflow)
+- `CI / Test` (from CI workflow)
+- `CI / Lint` (from CI workflow)
 {%- if cookiecutter.include_codecov == "yes" %}
 - `codecov/patch`
 {%- endif %}

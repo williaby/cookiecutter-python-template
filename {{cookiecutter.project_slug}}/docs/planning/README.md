@@ -1,6 +1,19 @@
+---
+title: "Project Planning Documents"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Index of project planning documentation."
+tags:
+  - planning
+  - documentation
+component: Context
+source: "Project initialization"
+---
+
 # Project Planning Documents
 
-This directory contains the essential planning documents for {{ '{{cookiecutter.project_name}}' }}.
+This directory contains the essential planning documents for {{cookiecutter.project_name}}.
 
 ## Quick Start
 

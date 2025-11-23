@@ -36,6 +36,41 @@ except ImportError:
     sys.exit(1)
 
 
+def enable_required_signatures(
+    owner: str, repo: str, branch: str, headers: dict
+) -> bool:
+    """Enable required commit signatures for a branch.
+
+    This is a separate API call from branch protection.
+
+    Args:
+        owner: Repository owner (user or organization)
+        repo: Repository name
+        branch: Branch name (e.g., 'main')
+        headers: HTTP headers with authentication
+
+    Returns:
+        True if successful, False otherwise
+    """
+    url = f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"
+
+    # Need preview header for this API
+    sig_headers = headers.copy()
+    sig_headers["Accept"] = "application/vnd.github.zzzax-preview+json"
+
+    response = requests.post(url, headers=sig_headers, timeout=10)
+
+    if response.status_code in (200, 201):
+        return True
+    elif response.status_code == 404:
+        # Branch protection must be set up first
+        print("  ⚠️  Note: Required signatures requires branch protection to be set first")
+        return False
+    else:
+        print(f"  ⚠️  Could not enable required signatures: {response.status_code}")
+        return False
+
+
 def check_existing_protection(
     owner: str, repo: str, branch: str, headers: dict
 ) -> dict | None:
@@ -117,13 +152,17 @@ def setup_branch_protection(
     # Branch protection configuration
     # See: https://docs.github.com/en/rest/branches/branch-protection
     #
-    # Status check names for reusable workflows follow the pattern:
-    #   "Workflow Name / Job Name"
+    # Status check names follow the pattern: "Workflow Name / Job Name"
+    # These must match exactly what appears in GitHub's status check list.
     #
     # Our workflow structure:
-    #   - ci.yml -> calls reusable python-ci.yml
-    #   - security-analysis.yml -> calls reusable python-security-analysis.yml
-    #   - pr-validation.yml -> standalone workflow
+    #   - ci.yml -> calls reusable python-ci.yml (job: ci, name: CI Pipeline)
+    #   - security-analysis.yml -> calls reusable workflow (job: security, name: Security Scan)
+    #   - pr-validation.yml -> standalone (jobs: validate-requirements, validate-lockfile)
+    #   - reuse.yml -> REUSE compliance check (job: reuse, name: Check REUSE Compliance)
+    #
+    # NOTE: If your workflow names differ, update the contexts list below.
+    # Run a test PR to see actual status check names in GitHub's UI.
     protection = {
         "required_status_checks": {
             "strict": True,
@@ -132,8 +171,12 @@ def setup_branch_protection(
                 "CI / CI Pipeline",
                 # Security Analysis workflow (calls org-level reusable workflow)
                 "Security Analysis / Security Scan",
-                # PR Validation workflow (standalone - validates lock files)
+                # PR Validation workflow - requirements sync validation
+                "PR Validation / Validate Requirements Sync",
+                # PR Validation workflow - lock file integrity check
                 "PR Validation / Validate Lock File Integrity",
+                # REUSE Compliance workflow (if use_reuse_licensing is enabled)
+                "REUSE Compliance / Check REUSE Compliance",
             ],
         },
         "enforce_admins": True,
@@ -158,7 +201,9 @@ def setup_branch_protection(
 
     print(f"\n🔧 Configuring branch protection for {owner}/{repo}:{branch}...")
     print("  Protection Rules:")
-    print(f"    ✅ Required status checks: {', '.join(protection['required_status_checks']['contexts'])}")
+    print("    ✅ Required status checks:")
+    for check in protection["required_status_checks"]["contexts"]:
+        print(f"       - {check}")
     print("    ✅ Required pull request reviews: 1")
     print("    ✅ Code owner reviews required")
     print("    ✅ Dismiss stale reviews")
@@ -174,6 +219,14 @@ def setup_branch_protection(
 
     if response.status_code in (200, 201):
         print("\n✅ Branch protection configured successfully!")
+
+        # Enable required commit signatures (separate API call)
+        print("\n🔐 Enabling required commit signatures...")
+        if enable_required_signatures(owner, repo, branch, headers):
+            print("    ✅ Required commit signatures enabled")
+        else:
+            print("    ⚠️  Required signatures not enabled (optional feature)")
+
         return True
     elif response.status_code == 403:
         print(f"\n❌ Error: Permission denied")

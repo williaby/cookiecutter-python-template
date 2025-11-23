@@ -6,3 +6,7 @@ tmp_cleanup/
 
 # Zen MCP Server data (should live in ~/.zen-mcp, not in repos)
 data/promptcraft/
+
+# Claude local config files (may contain secrets/tokens)
+.claude/.mcp.json
+.claude/settings.local.json

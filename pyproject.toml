@@ -127,10 +127,9 @@ exclude_dirs = [
     ".venv",
     "tests",
 ]
-skips = [
-    "B404",  # import subprocess - acceptable in hooks
-    "B603",  # subprocess without shell=True - safe usage in hooks
-]
+# Skip subprocess-related checks - acceptable in template generation hooks
+# Skip B101 (assert_used) - test files use assert legitimately for pytest
+skips = ["B101", "B404", "B603"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
