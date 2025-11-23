@@ -45,6 +45,9 @@ exclude_patterns = [
   "**/.venv/**",
   "**/__pycache__/**",
   "**/tmp_cleanup/**",
+  # Exclude cookiecutter template directories (not actual code)
+  # Note: Using literal pattern since curly braces conflict with glob syntax
+  "\\{\\{ cookiecutter.repo_name \\}\\}/**",
 ]
 
 test_patterns = [
@@ -97,3 +100,13 @@ drivers = [
 
 [[plugin]]
 name = "trufflehog"
+
+# Skip bandit on test files - test assertions are legitimate (B101)
+[[exclude]]
+plugins = ["bandit"]
+file_patterns = [
+  "**/tests/**",
+  "**/test/**",
+  "**/test_*.py",
+  "**/*_test.py",
+]
